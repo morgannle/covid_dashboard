@@ -1,3 +1,5 @@
+start_time <- Sys.time()
+
 library('readr')
 library('dplyr')
 library('plotly')
@@ -53,6 +55,8 @@ for (i in 1:state_count){
 
 states_cases_death_visualization = lapply(states_cases_death, draw)
 
+end_time <- Sys.time()
+end_time - start_time
 
 
 
