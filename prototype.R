@@ -1,3 +1,6 @@
+sleep_for_a_minute <- function() { Sys.sleep(60) }
+start_time <- Sys.time()
+
 library('readr')
 library('dplyr')
 library('plotly')
@@ -49,6 +52,7 @@ for (i in 1:state_count){
   
   states_cases_death_visualization[[i]] = plotly_build(temp_fig)
   }
+end_time <- Sys.time()
 
-
+running_time  = end_time - start_time
 
