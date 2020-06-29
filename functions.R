@@ -1,4 +1,12 @@
 #plot cumulative cases and deathss
+m <- list(
+  l = 50,
+  r = 50,
+  b = 100,
+  t = 100,
+  pad = 4
+)
+
 cumulate <- function(x){
   temp_state = as.data.frame(x)
   temp_state$date = as.Date(temp_state$date)
@@ -53,7 +61,11 @@ new_case <- function(x){
     hoverinfo = 'text',
     text = ~paste('Value: ', temp_state$cases_diff)
   )
-  temp_fig = temp_fig %>% layout(hovermode = 'x')
+  temp_fig = temp_fig %>% layout(hovermode = 'x',
+                                 autosize = F,
+                                 width = 1000,
+                                 height = 500,
+                                 margin = m)
   return(plotly_build(temp_fig))
 }
 
@@ -87,23 +99,30 @@ new_deaths <- function(x){
     hoverinfo = 'text',
     text = ~paste('Value: ', temp_state$deaths_diff)
   )
-  temp_fig = temp_fig %>% layout(hovermode = 'x')
+  temp_fig = temp_fig %>% layout(hovermode = 'x',
+                                 autosize = F,
+                                 width = 1000,
+                                 height = 500,
+                                 margin = m)
   return(plotly_build(temp_fig))
 }
 
 #this function calculate new cases and new deaths
 diff <- function(x){
   temp = as.data.frame(x)
-  temp$date = as.Date(temp$date)
   temp = x %>% mutate(cases_diff = cases - lag(cases),
                       deaths_diff = deaths - lag(deaths))
   return(temp)
 }
 
-#this function check if a value is negative
-is.negative <- function(x){
-  
+#this function calculate percent change of new cases and death
+diff_percent <- function(x){
+  temp_new_cases = x[nrow(x), ]$cases -  x[nrow(x)-1, ]$cases
+  temp_new_cases_percent = temp_new_cases / x[nrow(x)-1, ]$cases * 100
+  temp = c(temp_new_cases, round(temp_new_cases_percent, 2))
+  return(temp)
 }
+
 
 #this function replace NA and negative numbers with 0
 replace_ <- function(x){

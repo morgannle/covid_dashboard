@@ -37,11 +37,9 @@ states_data = lapply(states_data, replace_) #replace NA with 0
 us_data = diff(us_data)
 us_data = replace_(us_data)
 
-states_cases_deaths_cumulate = lapply(states_data, cumulate) 
 states_cases_perday = lapply(states_data, new_case)
 states_deaths_perday = lapply(states_data, new_deaths)
 
-us_cases_deaths_cumulate = cumulate(us_data)
 us_cases_perday = new_case(us_data)
 us_deaths_perday = new_deaths(us_data)
 
