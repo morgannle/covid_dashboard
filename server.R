@@ -18,45 +18,43 @@ server <- function(input, output) {
   county_data = read_csv(url(county_file_url))
   county_data$fips = as.character(county_data$fips)
   
-  current_county_data = county_data[county_data$date == Sys.Date()-2, ]
+  current_county_data = county_data[county_data$date == Sys.Date()-1, ] #data
   
   us_data = read_csv(url(us_file_url))
   
-  #this variable contains time series of all states
-  us_cases_deaths = county_data %>%
-    group_by(state, date) %>%
-    summarise(cases = sum(cases),
-              deaths = sum(deaths))
+  #this variable contains time series data of all state
+  us_state_cases_deaths = county_data %>%
+                            group_by(state, date) %>%
+                            summarise(cases = sum(cases),
+                            deaths = sum(deaths))
+  
   #get state names and number of states
   state_name = unique(county_data$state)
   state_ID = seq(1:length(state_name))
   state = data.frame(state_name, state_ID)
   colnames(state) = c("Name", "ID")
   
+  #number of states
   state_count = length(state_name)
-  states_cases_deaths = list() #each sub-object of these objects contains time series of each states
   
+  #each sub-object of these objects contains time series of each states
+  county_new_cases_deaths_sep = list() 
+
   for (i in 1:state_count){
-    states_cases_deaths[[i]] = us_cases_deaths[us_cases_deaths$state == state_name[i], ]
+    county_new_cases_deaths_sep[[i]] = us_state_cases_deaths[us_state_cases_deaths$state == state_name[i], ]
   }
   
-  states_data = lapply(states_cases_deaths, diff) #calculate new cases and deaths
-  states_data = lapply(states_data, replace_) #replace NA with 0
+  county_new_cases_deaths = lapply(county_new_cases_deaths_sep, diff) #calculate new cases and deaths
+  county_new_cases_deaths = lapply(county_new_cases_deaths, replace_) #replace NA with 0
   
   us_data = diff(us_data)
   us_data = replace_(us_data)
   
-  states_cases_perday = lapply(states_data, new_case)
-  states_deaths_perday = lapply(states_data, new_deaths)
-  states_deaths_perday = lapply(states_data, new_deaths)
+  states_cases_timeseries = lapply(county_new_cases_deaths, new_case)
+  states_deaths_timeseries = lapply(county_new_cases_deaths, new_deaths)
   
   us_cases_perday = new_case(us_data)
   us_deaths_perday = new_deaths(us_data)
-  us_perday = subplot(us_cases_perday,
-                      us_deaths_perday,
-                      nrows = 2,
-                      shareX = TRUE,
-                      titleY = TRUE)
   
   us_cases_perday_change = diff_percent(us_data)
   
@@ -67,30 +65,102 @@ server <- function(input, output) {
     lakecolor = toRGB('white')
   )
   
-  heatmap = plot_ly()
-  heatmap = heatmap %>% add_trace(
-    type = "choropleth",
-    geojson = county,
-    locations = current_county_data$fips,
-    z = current_county_data$cases,
-    colorscale = "Reds",
-    zmin = 0,
-    zmax=  max(county_data$cases)*0.05,
-    marker = list(line=list(
-      width = 0.5)),
-    hoverinfo = 'text',
-    text = ~paste('</br> State: ', current_county_data$state,
-                  '</br> County: ', current_county_data$county,
-                  '</br> Number of cases: ', current_county_data$cases)
-  )
-  heatmap = heatmap %>% colorbar(title = "COVID 19 cases in US")
-  heatmap = heatmap %>% layout(title = "2019 Corona Cases",
-                               geo = g,
-                               autosize = F,
-                               width = 1000,
-                               height = 650,
-                               margin = m)
+  heatmap_cases = plot_ly()
+  heatmap_cases = heatmap_cases %>% add_trace(
+                                      type = "choropleth",
+                                      geojson = county,
+                                      locations = current_county_data$fips,
+                                      z = current_county_data$cases,
+                                      colorscale = "Reds",
+                                      zmin = 0,
+                                      zmax=  max(county_data$cases)*0.05,
+                                      marker = list(line=list(
+                                                  width = 0)),
+                                      hoverinfo = 'text',
+                                      showscale = FALSE,
+                                      text = ~paste('</br> State: ', current_county_data$state,
+                                                    '</br> County: ', current_county_data$county,
+                                                    '</br> Number of cases: ', current_county_data$cases))
+  heatmap_cases = heatmap_cases %>% colorbar(title = "COVID 19 cases in US")
+  heatmap_cases = heatmap_cases %>% layout(geo = g) %>% 
+                                        config(modeBarButtonsToRemove = c("zoomInGeo",
+                                                                          "zoomOutGeo",
+                                                                          "hoverClosestGeo",
+                                                                          "select2d",
+                                                                          "lasso2d",
+                                                                          "toImage",
+                                                                          "pan2d"),
+                                               displaylogo = FALSE)
   
-  output$nation_timeseries = renderPlotly(us_perday)
-  output$heatmap = renderPlotly(heatmap)
+  heatmap_deaths = plot_ly()
+  heatmap_deaths = heatmap_deaths %>% add_trace(
+                                        type = "choropleth",
+                                        geojson = county,
+                                        locations = current_county_data$fips,
+                                        z = current_county_data$deaths,
+                                        colorscale = "Reds",
+                                        zmin = 0,
+                                        showscale = FALSE,
+                                        zmax=  max(county_data$deaths)*0.05,
+                                        marker = list(line=list(
+                                                                width = 0)),
+                                        hoverinfo = 'text',
+                                        text = ~paste('</br> State: ', current_county_data$state,
+                                                      '</br> County: ', current_county_data$county,
+                                                      '</br> Number of fatality: ', current_county_data$deaths))
+  heatmap_deaths = heatmap_deaths %>% colorbar(title = "COVID 19 deaths in US")
+  heatmap_deaths = heatmap_deaths %>% layout(geo = g) %>% 
+                                        config(modeBarButtonsToRemove = c("zoomInGeo",
+                                                                          "zoomOutGeo",
+                                                                          "hoverClosestGeo",
+                                                                          "select2d",
+                                                                          "lasso2d",
+                                                                          "toImage",
+                                                                          "pan2d"),
+                                                displaylogo = FALSE)
+  
+  #get most recent data
+  current_us_state_cases_deaths = us_state_cases_deaths[us_state_cases_deaths$date == Sys.Date()-1, ]
+  
+  #split the most current data into positive cases and deaths
+  current_us_state_cases = current_us_state_cases_deaths[ ,c(1,3)]
+  current_us_state_deaths = current_us_state_cases_deaths[,c(1,4)]
+  
+  #sorting
+  current_us_state_cases$state = factor(current_us_state_cases$state,
+                                        levels = unique(current_us_state_cases$state[order(current_us_state_cases$cases, decreasing = FALSE)]))
+  current_us_state_deaths$state = factor(current_us_state_deaths$state,
+                                        levels = unique(current_us_state_deaths$state[order(current_us_state_deaths$deaths, decreasing = FALSE)]))
+  
+  #barplot for cases
+  current_us_state_cases_barplot = plot_ly(current_us_state_cases,
+                                           y = ~state,
+                                           x = ~cases,
+                                          
+                                           type = 'bar',
+                                           orientation = 'h') %>%
+                                              layout(xaxis=list(fixedrange=TRUE),
+                                                     height = 1000) %>% 
+                                              layout(yaxis=list(fixedrange=TRUE)) %>%
+                                              config(displayModeBar = FALSE)
+ 
+  #barplot for deaths
+  current_us_state_deaths_barplot = plot_ly(current_us_state_deaths,
+                                           y = ~state,
+                                           x = ~deaths,
+                                           color = '#CC1480',
+                                           type = 'bar',
+                                           orientation = 'h') %>%
+                                              layout(xaxis=list(fixedrange=TRUE),
+                                                     height = 1000) %>% 
+                                              layout(yaxis=list(fixedrange=TRUE)) %>%
+                                              config(displayModeBar = FALSE)
+  
+  
+  output$cases_timeseries = renderPlotly(us_cases_perday)
+  output$deaths_timeseries = renderPlotly(us_deaths_perday)
+  output$heatmap_cases = renderPlotly(heatmap_cases)
+  output$heatmap_deaths = renderPlotly(heatmap_deaths)
+  output$state_cases_barplot = renderPlotly(current_us_state_cases_barplot)
+  output$state_deaths_barplot = renderPlotly(current_us_state_deaths_barplot)
 }

@@ -63,9 +63,9 @@ new_case <- function(x){
   )
   temp_fig = temp_fig %>% layout(hovermode = 'x',
                                  autosize = F,
-                                 width = 1000,
-                                 height = 500,
-                                 margin = m)
+                                 width = 550,
+                                 height = 400,
+                                 legend = list(x = 0, y = 1))
   return(plotly_build(temp_fig))
 }
 
@@ -101,9 +101,9 @@ new_deaths <- function(x){
   )
   temp_fig = temp_fig %>% layout(hovermode = 'x',
                                  autosize = F,
-                                 width = 1000,
-                                 height = 500,
-                                 margin = m)
+                                 width = 550,
+                                 height = 400,
+                                 legend = list(x = 0, y = 1))
   return(plotly_build(temp_fig))
 }
 
