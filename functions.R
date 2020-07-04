@@ -7,6 +7,10 @@ m <- list(
   pad = 4
 )
 
+hide_axis <- list(
+                  
+                  )
+
 cumulate <- function(x){
   temp_state = as.data.frame(x)
   temp_state$date = as.Date(temp_state$date)
@@ -40,8 +44,9 @@ new_case <- function(x){
     x = temp_state$date,
     y = temp_state$cases_diff,
     name = "New Infected",
-    type = 'bar',
-    color = "#bdbdbd",
+    type = 'scatter',
+    mode = 'line',
+    color = I("darkslategray4"),
     hoverinfo = 'text',
     text = ~paste('</br> Day: ', temp_state$date,
                   '</br> New case: ', temp_state$cases_diff)
@@ -62,10 +67,32 @@ new_case <- function(x){
     text = ~paste('Value: ', temp_state$cases_diff)
   )
   temp_fig = temp_fig %>% layout(hovermode = 'x',
-                                 autosize = F,
-                                 width = 550,
-                                 height = 400,
-                                 legend = list(x = 0, y = 1))
+                                 legend = list(x = 0, y = 1),
+                                 title = "Day-Over-Day New Cases",
+                                 xaxis = list(fixedrange=TRUE,
+                                              #title = "",
+                                              #zeroline = FALSE,
+                                              showline = FALSE,
+                                              #showticklabels = FALSE,
+                                              showgrid = FALSE),
+                                 yaxis = list(fixedrange=TRUE,
+                                              title = "",
+                                              #zeroline = FALSE,
+                                              showline = FALSE,
+                                              #showticklabels = FALSE,
+                                              showgrid = FALSE),
+                                 showlegend = TRUE)
+  temp_fig = temp_fig %>% config(modeBarButtonsToRemove = c("zoomInGeo",
+                                                            "zoomOutGeo",
+                                                            "hoverClosestGeo",
+                                                            'hoverClosestCartesian',
+                                                            "select2d",
+                                                            "lasso2d",
+                                                            "toImage",
+                                                            "pan2d",
+                                                            'toggleSpikelines',
+                                                            'hoverCompareCartesian'),
+                                 displaylogo = FALSE)
   return(plotly_build(temp_fig))
 }
 
@@ -78,8 +105,9 @@ new_deaths <- function(x){
     x = temp_state$date,
     y = temp_state$deaths_diff,
     name = "New Fatality",
-    type = 'bar',
-    color = I("gray"),
+    type = 'scatter',
+    mode = "line",
+    color = I("steelblue"),
     hoverinfo = 'text',
     text = ~paste('</br> Day: ', temp_state$date,
                   '</br> New Fatality: ', temp_state$deaths_diff)
@@ -94,16 +122,37 @@ new_deaths <- function(x){
     name = "7-day Moving Average",
     type = 'scatter',
     mode = 'line',
-    line = list(width = 3,
-                color = "#0B0B0B"),
+    color = I("black"),
     hoverinfo = 'text',
     text = ~paste('Value: ', temp_state$deaths_diff)
   )
   temp_fig = temp_fig %>% layout(hovermode = 'x',
-                                 autosize = F,
-                                 width = 550,
-                                 height = 400,
-                                 legend = list(x = 0, y = 1))
+                                 legend = list(x = 0, y = 1),
+                                 title = "Day-Over-Day New Deaths",
+                                 xaxis = list(fixedrange=TRUE,
+                                              title = "",
+                                              #zeroline = FALSE,
+                                              showline = FALSE,
+                                              #showticklabels = FALSE,
+                                              showgrid = FALSE),
+                                 yaxis = list(fixedrange=TRUE,
+                                              title = "",
+                                              #zeroline = FALSE,
+                                              showline = FALSE,
+                                              #showticklabels = FALSE,
+                                              showgrid = FALSE),
+                                 showlegend = TRUE)
+  temp_fig = temp_fig %>% config(modeBarButtonsToRemove = c("zoomInGeo",
+                                                            "zoomOutGeo",
+                                                            "hoverClosestGeo",
+                                                            'hoverClosestCartesian',
+                                                            "select2d",
+                                                            "lasso2d",
+                                                            "toImage",
+                                                            "pan2d",
+                                                            'toggleSpikelines',
+                                                            'hoverCompareCartesian'),
+                                 displaylogo = FALSE)
   return(plotly_build(temp_fig))
 }
 

@@ -9,16 +9,17 @@ library('zoo')
 library('shinydashboard')
 
 county_file_url = "https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv"
-us_file_url = "https://raw.githubusercontent.com/nytimes/covid-19-data/master/us.csv"
-json_url = 'https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json'
+us_file_url     = "https://raw.githubusercontent.com/nytimes/covid-19-data/master/us.csv"
+json_url        = "https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json"
 
 server <- function(input, output) {
+  
   county = rjson::fromJSON(file = json_url)
   
   county_data = read_csv(url(county_file_url))
   county_data$fips = as.character(county_data$fips)
   
-  current_county_data = county_data[county_data$date == Sys.Date()-1, ] #data
+  current_county_data = county_data[county_data$date == Sys.Date()-2, ] #data
   
   us_data = read_csv(url(us_file_url))
   
@@ -77,12 +78,12 @@ server <- function(input, output) {
                                       marker = list(line=list(
                                                   width = 0)),
                                       hoverinfo = 'text',
-                                      showscale = FALSE,
+                                      showscale = TRUE,
                                       text = ~paste('</br> State: ', current_county_data$state,
                                                     '</br> County: ', current_county_data$county,
                                                     '</br> Number of cases: ', current_county_data$cases))
-  heatmap_cases = heatmap_cases %>% colorbar(title = "COVID 19 cases in US")
-  heatmap_cases = heatmap_cases %>% layout(geo = g) %>% 
+  heatmap_cases = heatmap_cases %>% layout(geo = g,
+                                           title = "COVID 19 Cases in United States") %>% 
                                         config(modeBarButtonsToRemove = c("zoomInGeo",
                                                                           "zoomOutGeo",
                                                                           "hoverClosestGeo",
@@ -100,7 +101,7 @@ server <- function(input, output) {
                                         z = current_county_data$deaths,
                                         colorscale = "Reds",
                                         zmin = 0,
-                                        showscale = FALSE,
+                                        showscale = TRUE,
                                         zmax=  max(county_data$deaths)*0.05,
                                         marker = list(line=list(
                                                                 width = 0)),
@@ -108,8 +109,8 @@ server <- function(input, output) {
                                         text = ~paste('</br> State: ', current_county_data$state,
                                                       '</br> County: ', current_county_data$county,
                                                       '</br> Number of fatality: ', current_county_data$deaths))
-  heatmap_deaths = heatmap_deaths %>% colorbar(title = "COVID 19 deaths in US")
-  heatmap_deaths = heatmap_deaths %>% layout(geo = g) %>% 
+  heatmap_deaths = heatmap_deaths %>% layout(geo = g,
+                                             title = "COVID 19 Fatality in United States") %>% 
                                         config(modeBarButtonsToRemove = c("zoomInGeo",
                                                                           "zoomOutGeo",
                                                                           "hoverClosestGeo",
@@ -120,7 +121,7 @@ server <- function(input, output) {
                                                 displaylogo = FALSE)
   
   #get most recent data
-  current_us_state_cases_deaths = us_state_cases_deaths[us_state_cases_deaths$date == Sys.Date()-1, ]
+  current_us_state_cases_deaths = us_state_cases_deaths[us_state_cases_deaths$date == Sys.Date()-2, ]
   
   #split the most current data into positive cases and deaths
   current_us_state_cases = current_us_state_cases_deaths[ ,c(1,3)]
@@ -136,24 +137,30 @@ server <- function(input, output) {
   current_us_state_cases_barplot = plot_ly(current_us_state_cases,
                                            y = ~state,
                                            x = ~cases,
-                                          
+                                           color = I("blue"),
                                            type = 'bar',
                                            orientation = 'h') %>%
-                                              layout(xaxis=list(fixedrange=TRUE),
-                                                     height = 1000) %>% 
-                                              layout(yaxis=list(fixedrange=TRUE)) %>%
+                                              layout(
+                                                      title = "COVID 19 Cases in each State",
+                                                      xaxis=list(fixedrange=TRUE),
+                                                      height = 1000,  
+                                                      yaxis=list(fixedrange=TRUE)
+                                                      ) %>%
                                               config(displayModeBar = FALSE)
  
   #barplot for deaths
   current_us_state_deaths_barplot = plot_ly(current_us_state_deaths,
                                            y = ~state,
                                            x = ~deaths,
-                                           color = '#CC1480',
+                                           color = I("gray"),
                                            type = 'bar',
                                            orientation = 'h') %>%
-                                              layout(xaxis=list(fixedrange=TRUE),
-                                                     height = 1000) %>% 
-                                              layout(yaxis=list(fixedrange=TRUE)) %>%
+                                              layout(
+                                                      title = "COVID 19 Fatality in each State",
+                                                      xaxis=list(fixedrange=TRUE),
+                                                      height = 1000,
+                                                      yaxis=list(fixedrange=TRUE)
+                                                      ) %>%
                                               config(displayModeBar = FALSE)
   
   

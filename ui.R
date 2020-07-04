@@ -4,41 +4,80 @@ library(shinyWidgets)
 library(shinydashboard)
 library(DT)
 body_colwise <- dashboardBody(
-  tabsetPanel(
-    tabPanel("General overview",
-             fluidRow(
-               tabBox(
-                 title = "Heatmap of COVID 19 in US",
-                 id = "tabset1", 
-                 height = "450",
-                 width = 7,
-                 tabPanel("Distribution of cases", plotlyOutput("heatmap_cases")),
-                 tabPanel("Distribution of deaths", plotlyOutput("heatmap_deaths"))
-                ),
-               tabBox(
-                 title = "State ranking",
-                 id = "tabset2", 
-                 height = "450",
-                 width = 5,
-                 tabPanel("Sort by positive sases", style = "overflow-y:scroll", plotlyOutput('state_cases_barplot')),
-                 tabPanel("Sort by Deaths", style = "overflow-y:scroll", plotlyOutput('state_deaths_barplot'))
-                )
-              )
-            ),
-    tabPanel("State ranking",
-             fluidRow(tabBox(
-               title = "Time-series data",
-               id = "tabset2", 
-               height = "200",
-               width = 6,
-               tabPanel("Time-series of new cases", plotlyOutput("cases_timeseries")),
-               tabPanel("Time-series of new deaths", plotlyOutput("deaths_timeseries"))
-                  )
-                )
-              ),
-    tabPanel("State data")
+  fluidRow(
+    valueBox(
+      value = 2,
+      subtitle = "Total Cases",
+      width = 3
+    ),
+    valueBox(
+      value = 5,
+      subtitle = "Total Fatality",
+      width = 3
+    ),
+    valueBox(
+      value = 6,
+      subtitle = "New Cases",
+      width = 3
+    ),
+    valueBox(
+      value = 2,
+      subtitle = "New Fatality",
+      width = 3
+    )
+  ),
+  
+  fluidRow(
+    tabBox(
+      title = "Heatmap",
+      width = 8,
+      height = '500',
+      tabPanel(
+        "Cases",
+        plotlyOutput("heatmap_cases")
+      ),
+      tabPanel(
+        "Fatality",
+        plotlyOutput("heatmap_deaths")
+      )
+    ),
+    tabBox(
+      title = "State Data",
+      width = 4,
+      height = '500',
+      tabPanel(
+        "Cases",
+        style = 'overflow-y: scroll',
+        plotlyOutput("state_cases_barplot")
+      ),
+      tabPanel(
+        "Fatality",
+        style = 'overflow-y: scroll',
+        plotlyOutput("state_deaths_barplot")
+      )
+    )
+  ),
+  
+  fluidRow(
+    tabBox(
+      title = "Time-series Data",
+      width = 6,
+      tabPanel(
+        "New Cases",
+        plotlyOutput("cases_timeseries")
+      ),
+      tabPanel(
+        "New Fatality",
+        plotlyOutput("deaths_timeseries")
+      )
+    ),
+    box(
+      width = 6,
+      title = "Fatality Demographic"
+    )
   )
 )
+
 ui <- dashboardPage(
   
   dashboardHeader(title = "Summary of COVID 19 in United States"),
