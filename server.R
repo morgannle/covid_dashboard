@@ -14,114 +14,72 @@ json_url        = "https://raw.githubusercontent.com/plotly/datasets/master/geoj
 
 server <- function(input, output) {
   
-  county = rjson::fromJSON(file = json_url)
+  county_geo_fips = rjson::fromJSON(file = json_url)
   
-  county_data = read_csv(url(county_file_url))
-  county_data$fips = as.character(county_data$fips)
+  covid19_county_data = read_csv(
+    url(county_file_url)
+  )
   
-  current_county_data = county_data[county_data$date == Sys.Date()-2, ] #data
+  covid19_county_data$fips = as.character(covid19_county_data$fips)
   
-  us_data = read_csv(url(us_file_url))
+  #covid19 county data todate
+  todate_covid19_county_data = covid19_county_data[covid19_county_data$date == Sys.Date()-2, ] 
+  
+  covid19_nation_data = read_csv(
+    url(us_file_url)
+  )
   
   #this variable contains time series data of all state
-  us_state_cases_deaths = county_data %>%
-                            group_by(state, date) %>%
-                            summarise(cases = sum(cases),
-                            deaths = sum(deaths))
+  covid19_state_data = covid19_county_data %>%
+    group_by(state, date) %>%
+    summarise(cases = sum(cases),
+              deaths = sum(deaths))
   
   #get state names and number of states
-  state_name = unique(county_data$state)
+  state_name = unique(covid19_county_data$state)
   state_ID = seq(1:length(state_name))
   state = data.frame(state_name, state_ID)
   colnames(state) = c("Name", "ID")
   
   #number of states
-  state_count = length(state_name)
+  state_count = nrow(state)
   
   #each sub-object of these objects contains time series of each states
-  county_new_cases_deaths_sep = list() 
+  covid19_day_to_day_state_data = list()
 
   for (i in 1:state_count){
-    county_new_cases_deaths_sep[[i]] = us_state_cases_deaths[us_state_cases_deaths$state == state_name[i], ]
+    covid19_day_to_day_state_data[[i]] = covid19_state_data[covid19_state_data$state == state_name[i], ]
   }
   
-  county_new_cases_deaths = lapply(county_new_cases_deaths_sep, diff) #calculate new cases and deaths
-  county_new_cases_deaths = lapply(county_new_cases_deaths, replace_) #replace NA with 0
+  covid19_day_to_day_state_data = lapply(covid19_day_to_day_state_data, diff) #calculate new cases and deaths
+  covid19_day_to_day_state_data = lapply(covid19_day_to_day_state_data, replaceNA) #replace NA with 0
   
-  us_data = diff(us_data)
-  us_data = replace_(us_data)
+  covid19_day_to_day_nation_data = diff(covid19_nation_data) #calculate new cases and deaths
+  covid19_day_to_day_nation_data = replaceNA(covid19_day_to_day_nation_data) #replace NA with 0
   
-  states_cases_timeseries = lapply(county_new_cases_deaths, new_case)
-  states_deaths_timeseries = lapply(county_new_cases_deaths, new_deaths)
+  covid19_day_to_day_case_state_data = lapply(covid19_day_to_day_state_data, plot_case)
+  covid19_day_to_day_death_state_data = lapply(covid19_day_to_day_state_data, plot_death)
   
-  us_cases_perday = new_case(us_data)
-  us_deaths_perday = new_deaths(us_data)
+  covid_19_day_to_day_case_nation_data = plot_case(covid19_day_to_day_nation_data)
+  covid_19_day_to_day_death_nation_data = plot_death(covid19_day_to_day_nation_data)
   
-  us_cases_perday_change = diff_percent(us_data)
   
-  g <- list(
-    scope = 'usa',
-    projection = list(type = 'albers usa'),
-    showlakes = TRUE,
-    lakecolor = toRGB('white')
-  )
   
-  heatmap_cases = plot_ly()
-  heatmap_cases = heatmap_cases %>% add_trace(
-                                      type = "choropleth",
-                                      geojson = county,
-                                      locations = current_county_data$fips,
-                                      z = current_county_data$cases,
-                                      colorscale = "Reds",
-                                      zmin = 0,
-                                      zmax=  max(county_data$cases)*0.05,
-                                      marker = list(line=list(
-                                                  width = 0)),
-                                      hoverinfo = 'text',
-                                      showscale = TRUE,
-                                      text = ~paste('</br> State: ', current_county_data$state,
-                                                    '</br> County: ', current_county_data$county,
-                                                    '</br> Number of cases: ', current_county_data$cases))
-  heatmap_cases = heatmap_cases %>% layout(geo = g,
-                                           title = "COVID 19 Cases in United States") %>% 
-                                        config(modeBarButtonsToRemove = c("zoomInGeo",
-                                                                          "zoomOutGeo",
-                                                                          "hoverClosestGeo",
-                                                                          "select2d",
-                                                                          "lasso2d",
-                                                                          "toImage",
-                                                                          "pan2d"),
-                                               displaylogo = FALSE)
   
-  heatmap_deaths = plot_ly()
-  heatmap_deaths = heatmap_deaths %>% add_trace(
-                                        type = "choropleth",
-                                        geojson = county,
-                                        locations = current_county_data$fips,
-                                        z = current_county_data$deaths,
-                                        colorscale = "Reds",
-                                        zmin = 0,
-                                        showscale = TRUE,
-                                        zmax=  max(county_data$deaths)*0.05,
-                                        marker = list(line=list(
-                                                                width = 0)),
-                                        hoverinfo = 'text',
-                                        text = ~paste('</br> State: ', current_county_data$state,
-                                                      '</br> County: ', current_county_data$county,
-                                                      '</br> Number of fatality: ', current_county_data$deaths))
-  heatmap_deaths = heatmap_deaths %>% layout(geo = g,
-                                             title = "COVID 19 Fatality in United States") %>% 
-                                        config(modeBarButtonsToRemove = c("zoomInGeo",
-                                                                          "zoomOutGeo",
-                                                                          "hoverClosestGeo",
-                                                                          "select2d",
-                                                                          "lasso2d",
-                                                                          "toImage",
-                                                                          "pan2d"),
-                                                displaylogo = FALSE)
+  
+  
+  
+  
+  
   
   #get most recent data
   current_us_state_cases_deaths = us_state_cases_deaths[us_state_cases_deaths$date == Sys.Date()-2, ]
+  
+  
+  
+  
+  
+  
   
   #split the most current data into positive cases and deaths
   current_us_state_cases = current_us_state_cases_deaths[ ,c(1,3)]

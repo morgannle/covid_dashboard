@@ -1,4 +1,4 @@
-#plot cumulative cases and deathss
+#plot cumulative cases and deaths
 m <- list(
   l = 50,
   r = 50,
@@ -7,36 +7,15 @@ m <- list(
   pad = 4
 )
 
-hide_axis <- list(
-                  
-                  )
-
-cumulate <- function(x){
-  temp_state = as.data.frame(x)
-  temp_state$date = as.Date(temp_state$date)
-  temp_fig = plot_ly(
-    x = temp_state$date,
-    y = temp_state$cases,
-    name = "Infected",
-    type = 'scatter',
-    mode = 'lines',
-    fill = 'tozeroy',
-    hoverinfo = 'text',
-    text = ~paste('</br> Day: ', temp_state$date,
-                  '</br> Total number of covid-19 Positive: ', temp_state$cases))
-  temp_fig = temp_fig %>% add_trace(
-    x = temp_state$date,
-    y = temp_state$deaths,
-    name = "Fatality",
-    type = 'scatter',
-    mode = 'lines',
-    text = ~paste('Total number of fatality: ', temp_state$deaths))
-  temp_fig = temp_fig %>% layout(hovermode = 'x')
-  return(plotly_build(temp_fig)) 
-}
+g <- list(
+  scope = 'usa',
+  projection = list(type = 'albers usa'),
+  showlakes = TRUE,
+  lakecolor = toRGB('white')
+)
 
 #plot new cases
-new_case <- function(x){
+plot_case <- function(x){
   temp_state = as.data.frame(x)
   temp_state$date = as.Date(temp_state$date)
   
@@ -69,19 +48,20 @@ new_case <- function(x){
   temp_fig = temp_fig %>% layout(hovermode = 'x',
                                  legend = list(x = 0, y = 1),
                                  title = "Day-Over-Day New Cases",
-                                 xaxis = list(fixedrange=TRUE,
+                                 xaxis = list(fixedrange = TRUE,
                                               #title = "",
                                               #zeroline = FALSE,
                                               showline = FALSE,
                                               #showticklabels = FALSE,
                                               showgrid = FALSE),
-                                 yaxis = list(fixedrange=TRUE,
+                                 yaxis = list(fixedrange = TRUE,
                                               title = "",
                                               #zeroline = FALSE,
                                               showline = FALSE,
                                               #showticklabels = FALSE,
                                               showgrid = FALSE),
                                  showlegend = TRUE)
+  
   temp_fig = temp_fig %>% config(modeBarButtonsToRemove = c("zoomInGeo",
                                                             "zoomOutGeo",
                                                             "hoverClosestGeo",
@@ -93,11 +73,13 @@ new_case <- function(x){
                                                             'toggleSpikelines',
                                                             'hoverCompareCartesian'),
                                  displaylogo = FALSE)
-  return(plotly_build(temp_fig))
+  return(
+    plotly_build(temp_fig)
+    )
 }
 
 #plot new deaths
-new_deaths <- function(x){
+plot_death <- function(x){
   temp_state = as.data.frame(x)
   temp_state$date = as.Date(temp_state$date)
   
@@ -126,22 +108,24 @@ new_deaths <- function(x){
     hoverinfo = 'text',
     text = ~paste('Value: ', temp_state$deaths_diff)
   )
+  
   temp_fig = temp_fig %>% layout(hovermode = 'x',
                                  legend = list(x = 0, y = 1),
                                  title = "Day-Over-Day New Deaths",
-                                 xaxis = list(fixedrange=TRUE,
+                                 xaxis = list(fixedrange = TRUE,
                                               title = "",
                                               #zeroline = FALSE,
                                               showline = FALSE,
                                               #showticklabels = FALSE,
                                               showgrid = FALSE),
-                                 yaxis = list(fixedrange=TRUE,
+                                 yaxis = list(fixedrange = TRUE,
                                               title = "",
                                               #zeroline = FALSE,
                                               showline = FALSE,
                                               #showticklabels = FALSE,
                                               showgrid = FALSE),
                                  showlegend = TRUE)
+  
   temp_fig = temp_fig %>% config(modeBarButtonsToRemove = c("zoomInGeo",
                                                             "zoomOutGeo",
                                                             "hoverClosestGeo",
@@ -153,28 +137,101 @@ new_deaths <- function(x){
                                                             'toggleSpikelines',
                                                             'hoverCompareCartesian'),
                                  displaylogo = FALSE)
-  return(plotly_build(temp_fig))
+  return(
+    plotly_build(temp_fig)
+    )
 }
 
 #this function calculate new cases and new deaths
 diff <- function(x){
   temp = as.data.frame(x)
-  temp = x %>% mutate(cases_diff = cases - lag(cases),
-                      deaths_diff = deaths - lag(deaths))
+  temp = x %>% mutate(
+    cases_diff = cases - lag(cases),
+    deaths_diff = deaths - lag(deaths)
+  )
   return(temp)
 }
 
-#this function calculate percent change of new cases and death
-diff_percent <- function(x){
-  temp_new_cases = x[nrow(x), ]$cases -  x[nrow(x)-1, ]$cases
-  temp_new_cases_percent = temp_new_cases / x[nrow(x)-1, ]$cases * 100
-  temp = c(temp_new_cases, round(temp_new_cases_percent, 2))
-  return(temp)
-}
-
-
-#this function replace NA and negative numbers with 0
-replace_ <- function(x){
+#this function replace NA with 0
+replaceNA <- function(x){
   temp = x %>% replace(is.na(.), 0)
   return(temp)
+}
+
+#this function plot heatmap for total cases
+plot_case_map <- function(x){
+  
+  temp_data = x
+  
+  temp_heatmap_case = plot_ly()
+  
+  temp_heatmap_case = temp_heatmap_case %>% add_trace(
+    type = "choropleth",
+    geojson = county_geo_fips,
+    locations = temp_data$fips,
+    z = temp_data$cases,
+    colorscale = "Reds",
+    zmin = 0,
+    zmax=  max(temp_data$cases)*0.05,
+    marker = list(
+      line=list(width = 0)
+    ),
+    hoverinfo = 'text',
+    showscale = TRUE,
+    text = ~paste('</br> State: ', temp_data$state,
+                  '</br> County: ',temp_data$county,
+                  '</br> Number of cases: ', temp_data$cases)
+    )
+  
+  temp_heatmap_case = temp_heatmap_case %>% layout(geo = g,
+                                                   title = "COVID 19 Cases in United States") %>% 
+    config(modeBarButtonsToRemove = c("zoomInGeo",
+                                      "zoomOutGeo",
+                                      "hoverClosestGeo",
+                                      "select2d",
+                                      "lasso2d",
+                                      "toImage",
+                                      "pan2d"),
+           displaylogo = FALSE)
+  return(
+    plotly_build(temp_heatmap_case)
+         )
+}
+
+plot_death_map <- function(x){
+  temp_data = x
+  
+  temp_heatmap_death = plot_ly()
+  
+  temp_heatmap_death = temp_heatmap_death %>% add_trace(
+    type = "choropleth",
+    geojson = county_geo_fips,
+    locations = temp_data$fips,
+    z = temp_data$deaths,
+    colorscale = "Reds",
+    zmin = 0,
+    showscale = TRUE,
+    zmax=  max(temp_data$deaths)*0.05,
+    marker = list(
+      line = list(width = 0)
+      ),
+    hoverinfo = 'text',
+    text = ~paste('</br> State: ', temp_data$state,
+                  '</br> County: ', temp_data$county,
+                  '</br> Number of fatality: ', temp_data$deaths)
+    )
+  
+  temp_heatmap_death = temp_heatmap_death %>% layout(geo = g,
+                                                     title = "COVID 19 Fatality in United States") %>% 
+    config(modeBarButtonsToRemove = c("zoomInGeo",
+                                      "zoomOutGeo",
+                                      "hoverClosestGeo",
+                                      "select2d",
+                                      "lasso2d",
+                                      "toImage",
+                                      "pan2d"),
+           displaylogo = FALSE)
+  return(
+    plotly_build(temp_heatmap_case)
+  )
 }
