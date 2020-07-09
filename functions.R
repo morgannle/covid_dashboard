@@ -14,6 +14,8 @@ g <- list(
   lakecolor = toRGB('white')
 )
 
+state_bounding_box = read.csv("state_bounding_box.csv")
+
 #plot new cases
 plot_case <- function(x){
   temp_state = as.data.frame(x)
@@ -160,78 +162,147 @@ replaceNA <- function(x){
 
 #this function plot heatmap for total cases
 plot_case_map <- function(x){
+  data = x
+  #get state name
+  state_name = unique(data$state)
+  #get state bounding box
+  state_bounding = state_bounding_box[state_bounding_box$NAME == state_name, ]
+  #get most recent data
+  data = data[data$date == Sys.Date() - 2, ]
   
-  temp_data = x
+  temp_data <- subset(data, 
+                      select = c("cases", "fips")
+                      )
   
-  temp_heatmap_case = plot_ly()
+  colnames(temp_data) <- c("cases", "GEOID")
+  fips = substring(data$fips[1], 1, 2) #get fips code of the state
   
-  temp_heatmap_case = temp_heatmap_case %>% add_trace(
-    type = "choropleth",
-    geojson = county_geo_fips,
-    locations = temp_data$fips,
-    z = temp_data$cases,
-    colorscale = "Reds",
-    zmin = 0,
-    zmax=  max(temp_data$cases)*0.05,
-    marker = list(
-      line=list(width = 0)
-    ),
-    hoverinfo = 'text',
-    showscale = TRUE,
-    text = ~paste('</br> State: ', temp_data$state,
-                  '</br> County: ',temp_data$county,
-                  '</br> Number of cases: ', temp_data$cases)
-    )
+  #download map shape
+  map.shape = tigris::counties(state = fips, 
+                               cb = TRUE,
+                               resolution='500k')
   
-  temp_heatmap_case = temp_heatmap_case %>% layout(geo = g,
-                                                   title = "COVID 19 Cases in United States") %>% 
-    config(modeBarButtonsToRemove = c("zoomInGeo",
-                                      "zoomOutGeo",
-                                      "hoverClosestGeo",
-                                      "select2d",
-                                      "lasso2d",
-                                      "toImage",
-                                      "pan2d"),
-           displaylogo = FALSE)
-  return(
-    plotly_build(temp_heatmap_case)
-         )
+  #convert tabular data into geo-spatial data
+  leafmap <- geo_join(map.shape, 
+                      temp_data, 
+                      by = "GEOID")
+  
+  #color color palette
+  roundUp <- function(x) 10^ceiling(log10(x))
+  risk.bins <-c(0, 
+                ceiling(max(temp_data$cases) * 1/1000), 
+                ceiling(max(temp_data$cases) * 1/100), 
+                ceiling(max(temp_data$cases) * 1/50), 
+                ceiling(max(temp_data$cases) * 1/30), 
+                ceiling(max(temp_data$cases) * 1/10), 
+                ceiling(max(temp_data$cases))
+  )
+  pal <- colorBin("YlOrRd", 
+                  domain = temp_data$cases,
+                  bins = risk.bins
+                  )
+  #make map
+  temp_fig = leaflet(data = leafmap,
+                     options = leafletOptions(minZoom = 5)
+                     ) %>% 
+    addTiles() %>% 
+    addPolygons(fillColor = ~pal(cases), 
+                fillOpacity = 1, 
+                color = "#b2aeae",
+                weight = 1,
+                smoothFactor = 0.5,
+                popup = paste0("County: ", 
+                               leafmap$NAME,
+                               "<br>",
+                               "Number of cases: ",
+                               prettyNum(leafmap$cases, 
+                                         big.mark=",", 
+                                         scientific = FALSE)
+                               ),
+                highlightOptions = highlightOptions(color = "white", 
+                                                    weight = 2,
+                                                    bringToFront = TRUE)
+                ) %>%
+    addLegend(pal = pal, 
+              values = data$cases, 
+              opacity = 1) %>%
+    setMaxBounds( lng1 = state_bounding$xmin,
+                  lat1 = state_bounding$ymin,
+                  lng2 = state_bounding$xmax,
+                  lat2 = state_bounding$ymax)
+
+  return(temp_fig)
 }
 
 plot_death_map <- function(x){
-  temp_data = x
+  data = x
+  #get state name
+  state_name = unique(data$state)
+  #get state bounding box
+  state_bounding = state_bounding_box[state_bounding_box$NAME == state_name, ]
+  #get most recent data
+  data = data[data$date == Sys.Date() - 2, ]
   
-  temp_heatmap_death = plot_ly()
-  
-  temp_heatmap_death = temp_heatmap_death %>% add_trace(
-    type = "choropleth",
-    geojson = county_geo_fips,
-    locations = temp_data$fips,
-    z = temp_data$deaths,
-    colorscale = "Reds",
-    zmin = 0,
-    showscale = TRUE,
-    zmax=  max(temp_data$deaths)*0.05,
-    marker = list(
-      line = list(width = 0)
-      ),
-    hoverinfo = 'text',
-    text = ~paste('</br> State: ', temp_data$state,
-                  '</br> County: ', temp_data$county,
-                  '</br> Number of fatality: ', temp_data$deaths)
-    )
-  
-  temp_heatmap_death = temp_heatmap_death %>% layout(geo = g,
-                                                     title = "COVID 19 Fatality in United States") %>% 
-    config(modeBarButtonsToRemove = c("zoomInGeo",
-                                      "zoomOutGeo",
-                                      "hoverClosestGeo",
-                                      "select2d",
-                                      "lasso2d",
-                                      "toImage",
-                                      "pan2d"),
-           displaylogo = FALSE)
-  return(
-    plotly_build(temp_heatmap_case)
+  temp_data <- subset(data, 
+                      select = c("deaths", "fips")
   )
+  
+  colnames(temp_data) <- c("deaths", "GEOID")
+  fips = substring(data$fips[1], 1, 2) #get fips code of the state
+  
+  #download map shape
+  map.shape = tigris::counties(state = fips, 
+                               cb = TRUE,
+                               resolution='500k')
+  
+  #convert tabular data into geo-spatial data
+  leafmap <- geo_join(map.shape, 
+                      temp_data, 
+                      by = "GEOID")
+  
+  #color color palette
+  roundUp <- function(x) 10^ceiling(log10(x))
+  risk.bins <-c(0, 
+                ceiling(max(temp_data$deaths) * 1/1000), 
+                ceiling(max(temp_data$deaths) * 1/100), 
+                ceiling(max(temp_data$deaths) * 1/50), 
+                ceiling(max(temp_data$deaths) * 1/30), 
+                ceiling(max(temp_data$deaths) * 1/10), 
+                ceiling(max(temp_data$deaths))
+  )
+  pal <- colorBin("YlOrRd", 
+                  domain = temp_data$deaths,
+                  bins = risk.bins
+  )
+  #make map
+  temp_fig = leaflet(data = leafmap,
+                     options = leafletOptions(minZoom = 5)
+  ) %>% 
+    addTiles() %>% 
+    addPolygons(fillColor = ~pal(deaths), 
+                fillOpacity = 1, 
+                color = "#b2aeae",
+                weight = 1,
+                smoothFactor = 0.5,
+                popup = paste0("County: ", 
+                               leafmap$NAME,
+                               "<br>",
+                               "Number of fatality: ",
+                               prettyNum(leafmap$deaths, 
+                                         big.mark=",", 
+                                         scientific = FALSE)
+                ),
+                highlightOptions = highlightOptions(color = "white", 
+                                                    weight = 2,
+                                                    bringToFront = TRUE)
+    ) %>%
+    addLegend(pal = pal, 
+              values = data$deaths, 
+              opacity = 1) %>%
+    setMaxBounds( lng1 = state_bounding$xmin,
+                  lat1 = state_bounding$ymin,
+                  lng2 = state_bounding$xmax,
+                  lat2 = state_bounding$ymax)
+  
+  return(temp_fig)
 }

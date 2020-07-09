@@ -34,11 +34,11 @@ body_colwise <- dashboardBody(
       height = '500',
       tabPanel(
         "Cases",
-        plotlyOutput("heatmap_cases")
+        leafletOutput("heatmap_cases")
       ),
       tabPanel(
         "Fatality",
-        plotlyOutput("heatmap_deaths")
+        leafletOutput("heatmap_deaths")
       )
     ),
     tabBox(
