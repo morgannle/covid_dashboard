@@ -13,21 +13,22 @@ library('tigris')
 
 county_file_url = "https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv"
 us_file_url     = "https://raw.githubusercontent.com/nytimes/covid-19-data/master/us.csv"
-json_url        = "https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json"
 
-server <- function(input, output) {
-  
-  county_geo_fips = rjson::fromJSON(file = json_url)
+server <- function(input, output, session) {
   
   covid19_county_data = read_csv(
     url(county_file_url)
   )
+  
+  selected_state = reactive(input$select)
   
   covid19_county_data$fips = as.character(covid19_county_data$fips)
   
   covid19_nation_data = read_csv(
     url(us_file_url)
   )
+  covid19_nation_data$state = "National"
+  covid19_nation_data = covid19_nation_data[ ,c(4,1,2,3)] #reorder the dataframe
   
   #this variable contains time series data of all state
   covid19_state_data = covid19_county_data %>%
@@ -38,48 +39,84 @@ server <- function(input, output) {
   
   #get state names and number of states
   state_name = unique(covid19_county_data$state)
-  state_name[length(state_name) + 1] = "United States"
+  state_name = state_name[order(state_name)]
+  state_name = state_name[-c(37, 42, 12)]
   state_ID = seq(1:length(state_name))
-  state = data.frame(state_name, state_ID)
-  colnames(state) = c("Name", "ID")
-  
+  state = data.frame(state_name, state_name)
+  colnames(state) = c("ID", "Name")
+  #reorder the state names
+  state = state[order(state$Name), ]
+  #making named list
+  selection_list = setNames(as.list(state$ID), as.list(state$Name))
   #number of states
   state_count = nrow(state)
   
-  #each sub-object of these objects contains time series of each states
-  covid19_state_data_list_of_list = list()
-  covid19_county_data_list_of_list = list()
+  #display selection box
+  updateSelectizeInput(session, 
+                       'select', 
+                       choices = selection_list, 
+                       server = TRUE)
+  
+  #each sub-object of these objects contains time series data of each states
+  covid19_timeseries_data = list()
 
   for (i in 1:state_count){
-    covid19_state_data_list_of_list[[i]] = covid19_state_data[covid19_state_data$state == state_name[i], ]
-    covid19_county_data_list_of_list[[i]] = covid19_county_data[covid19_county_data$state == state_name[i], ]
-  }
+    covid19_timeseries_data[[i]] = covid19_state_data[covid19_state_data$state == state_name[i], ]
+    }
   
-  covid19_day_to_day_state_data = lapply(covid19_state_data_list_of_list, diff) #calculate new cases and deaths
-  covid19_day_to_day_state_data = lapply(covid19_state_data_list_of_list, replaceNA) #replace NA with 0
-  
-  covid19_day_to_day_nation_data = diff(covid19_nation_data) #calculate new cases and deaths
-  covid19_day_to_day_nation_data = replaceNA(covid19_day_to_day_nation_data) #replace NA with 0
-  
-  covid19_day_to_day_case_plot = lapply(covid19_day_to_day_state_data, plot_case) #plot new case of all state  
-  covid19_day_to_day_death_plot = lapply(covid19_day_to_day_state_data, plot_death) #plot new death of all state
-  
-  covid_19_day_to_day_case_nation_plot = plot_case(covid19_day_to_day_nation_data) #plot new case for US
-  covid_19_day_to_day_death_nation_plot = plot_death(covid19_day_to_day_nation_data) #plot new death for US
-  
-  #this objects store all time-series plot for every state in United States
-  covid19_day_to_day_case_plot[[length(covid19_day_to_day_case_plot)+1]] = covid_19_day_to_day_case_nation_plot
-  covid19_day_to_day_death_plot[[length(covid19_day_to_day_death_plot)+1]] = covid_19_day_to_day_death_nation_plot
+  covid19_timeseries_data = lapply(covid19_timeseries_data, diff) #calculate new cases and deaths
+  covid19_timeseries_data = lapply(covid19_timeseries_data, replaceNA) #replace NA with 0
+  #include nation data in the list
+  covid19_timeseries_data[[length(covid19_timeseries_data) + 1]] = replaceNA(
+    diff(
+      covid19_nation_data
+      )
+    )
+  #collapse the list of list
+  covid19_timeseries_data = do.call(rbind, covid19_timeseries_data)
   
   #drawing heat map of case and death in every states
-  #covid19 county data to date
-  cal = covid19_county_data[covid19_county_data$state == "Texas", ]
+  selected_state_heatmap_data = reactive(
+    covid19_county_data[covid19_county_data$state == selected_state(), ]
+    )
+  temp_state_heatmap = reactive(
+    plot_map_state(selected_state_heatmap_data())
+    )
   
-  #output$cases_timeseries = renderPlotly(us_cases_perday)
-  #output$deaths_timeseries = renderPlotly(us_deaths_perday)
-  output$heatmap_cases = renderLeaflet(plot_case_map(cal))
-  output$heatmap_deaths = renderLeaflet(plot_death_map(cal))
-  #output$heatmap_deaths = renderPlotly(heatmap_deaths)
+  #drawing timeseries plot of case and death in every states
+  selected_state_timeseries_data = reactive(
+    covid19_timeseries_data[covid19_timeseries_data$state == selected_state(), ]
+    )
+  temp_timeplot_cases = reactive(
+    plot_case(selected_state_timeseries_data())
+    )
+  temp_timeplot_deaths = reactive(
+    plot_death(selected_state_timeseries_data())
+    )
+  
+  #
+  selected_state_data = reactive(
+    covid19_state_data[covid19_state_data$state == selected_state(), ]
+    )
+
+  output$cases_timeseries = renderLeaflet(temp_timeplot_cases())
+  output$deaths_timeseries = renderLeaflet(temp_timeplot_deaths())
+  output$heatmap_cases = renderLeaflet(temp_state_heatmap())                                   
   #output$state_cases_barplot = renderPlotly(current_us_state_cases_barplot)
   #output$state_deaths_barplot = renderPlotly(current_us_state_deaths_barplot)
+  output$valuebox_total_case = renderValueBox(
+    valueBox(total_case(selected_state_data()), 
+             width = 3, 
+             icon = icon("stethoscope"),
+             subtitle = "Total Cases",
+             )
+    )
+  output$valuebox_total_death = renderValueBox(
+    valueBox(total_death(selected_state_data()), 
+             width = 3, 
+             icon = icon("stethoscope"),
+             subtitle = "Total Fatality",
+    )
+  )
+  
 }

@@ -1,19 +1,3 @@
-#plot cumulative cases and deaths
-m <- list(
-  l = 50,
-  r = 50,
-  b = 100,
-  t = 100,
-  pad = 4
-)
-
-g <- list(
-  scope = 'usa',
-  projection = list(type = 'albers usa'),
-  showlakes = TRUE,
-  lakecolor = toRGB('white')
-)
-
 state_bounding_box = read.csv("state_bounding_box.csv")
 
 #plot new cases
@@ -42,8 +26,7 @@ plot_case <- function(x){
     name = "7-day Moving Average",
     type = 'scatter',
     mode = 'line',
-    line = list(width = 3,
-                color = "#FF0101"),
+    color = I("black"),
     hoverinfo = 'text',
     text = ~paste('Value: ', temp_state$cases_diff)
   )
@@ -161,7 +144,7 @@ replaceNA <- function(x){
 }
 
 #this function plot heatmap for total cases
-plot_case_map <- function(x){
+plot_map_state <- function(x){
   data = x
   #get state name
   state_name = unique(data$state)
@@ -170,11 +153,16 @@ plot_case_map <- function(x){
   #get most recent data
   data = data[data$date == Sys.Date() - 2, ]
   
-  temp_data <- subset(data, 
-                      select = c("cases", "fips")
-                      )
+  temp_data_cases = subset(data, 
+                           select = c("cases", "fips")
+  )
+  temp_data_deaths = subset(data, 
+                            select = c("deaths", "fips")
+  )
   
-  colnames(temp_data) <- c("cases", "GEOID")
+  colnames(temp_data_cases) <- c("cases", "GEOID")
+  colnames(temp_data_deaths) <- c("deaths", "GEOID")
+  
   fips = substring(data$fips[1], 1, 2) #get fips code of the state
   
   #download map shape
@@ -183,126 +171,118 @@ plot_case_map <- function(x){
                                resolution='500k')
   
   #convert tabular data into geo-spatial data
-  leafmap <- geo_join(map.shape, 
-                      temp_data, 
-                      by = "GEOID")
+  map_cases <- geo_join(map.shape, 
+                        temp_data_cases, 
+                        by = "GEOID")
+  map_deaths <- geo_join(map.shape, 
+                         temp_data_deaths, 
+                         by = "GEOID")
   
-  #color color palette
+  #color palette
   roundUp <- function(x) 10^ceiling(log10(x))
-  risk.bins <-c(0, 
-                ceiling(max(temp_data$cases) * 1/1000), 
-                ceiling(max(temp_data$cases) * 1/100), 
-                ceiling(max(temp_data$cases) * 1/50), 
-                ceiling(max(temp_data$cases) * 1/30), 
-                ceiling(max(temp_data$cases) * 1/10), 
-                ceiling(max(temp_data$cases))
+  risk_bins_cases <-c(
+    0, 
+    ceiling(max(temp_data_cases$cases) * 0.01), 
+    ceiling(max(temp_data_cases$cases) * 0.05), 
+    ceiling(max(temp_data_cases$cases) * 0.1), 
+    ceiling(max(temp_data_cases$cases) * 0.3), 
+    ceiling(max(temp_data_cases$cases) * 0.5), 
+    ceiling(max(temp_data_cases$cases))
   )
-  pal <- colorBin("YlOrRd", 
-                  domain = temp_data$cases,
-                  bins = risk.bins
-                  )
+  
+  pal_cases <- colorBin("YlOrRd", 
+                        domain = temp_data_cases$cases,
+                        bins = risk_bins_cases
+                        )
+  pal_deaths <- colorNumeric("Purples", 
+                            domain = temp_data_deaths$deaths
+                            )
   #make map
-  temp_fig = leaflet(data = leafmap,
-                     options = leafletOptions(minZoom = 5)
-                     ) %>% 
+  temp_fig = leaflet(options = leafletOptions(minZoom = 5)) %>% 
     addTiles() %>% 
-    addPolygons(fillColor = ~pal(cases), 
-                fillOpacity = 1, 
-                color = "#b2aeae",
-                weight = 1,
-                smoothFactor = 0.5,
-                popup = paste0("County: ", 
-                               leafmap$NAME,
-                               "<br>",
-                               "Number of cases: ",
-                               prettyNum(leafmap$cases, 
-                                         big.mark=",", 
-                                         scientific = FALSE)
-                               ),
-                highlightOptions = highlightOptions(color = "white", 
-                                                    weight = 2,
-                                                    bringToFront = TRUE)
-                ) %>%
-    addLegend(pal = pal, 
-              values = data$cases, 
-              opacity = 1) %>%
+    #add positive cases layer
+    addPolygons(
+      data = map_cases,
+      fillColor = ~pal_cases(cases), 
+      fillOpacity = 1,
+      group = "Infected",
+      color = "#b2aeae",
+      weight = 1,
+      smoothFactor = 0.5,
+      popup = paste0("County: ", 
+                     map_cases$NAME,
+                     "<br>",
+                     "Number of cases: ",
+                     prettyNum(map_cases$cases, 
+                               big.mark=",", 
+                               scientific = FALSE)
+      ),
+      highlightOptions = highlightOptions(color = "white", 
+                                          weight = 2,
+                                          bringToFront = TRUE)
+    ) %>%
+    #add deaths layer
+    addPolygons(
+      data = map_deaths,
+      fillColor = ~pal_deaths(deaths), 
+      fillOpacity = 1, 
+      group = "Fatality",
+      color = "#b2aeae",
+      weight = 1,
+      smoothFactor = 0.5,
+      popup = paste0("County: ", 
+                     map_deaths$NAME,
+                     "<br>",
+                     "Number of fatality: ",
+                     prettyNum(map_deaths$deaths, 
+                               big.mark=",", 
+                               scientific = FALSE)
+      ),
+      highlightOptions = highlightOptions(color = "white", 
+                                          weight = 2,
+                                          bringToFront = TRUE)
+    ) %>%
+    #add legends
+    addLegend(
+      title = "Positive Cases",
+      pal = pal_cases, 
+      values = map_cases$cases, 
+      group = "Infected",
+      opacity = 1) %>%
+    addLegend(
+      title = "Fatality",
+      pal = pal_deaths, 
+      values = map_deaths$deaths,
+      group = "Fatality",
+      opacity = 1) %>%
+    #add layer control
+    addLayersControl(
+      baseGroups = c ("Infected", "Fatality"),
+      #overlayGroups = c ("Infected", "Fatality"),
+      position = "topleft",
+      options = layersControlOptions(collapsed = FALSE)
+      ) %>%
+    #set max bound
     setMaxBounds( lng1 = state_bounding$xmin,
                   lat1 = state_bounding$ymin,
                   lng2 = state_bounding$xmax,
                   lat2 = state_bounding$ymax)
-
+  
   return(temp_fig)
 }
 
-plot_death_map <- function(x){
-  data = x
-  #get state name
-  state_name = unique(data$state)
-  #get state bounding box
-  state_bounding = state_bounding_box[state_bounding_box$NAME == state_name, ]
-  #get most recent data
-  data = data[data$date == Sys.Date() - 2, ]
-  
-  temp_data <- subset(data, 
-                      select = c("deaths", "fips")
-  )
-  
-  colnames(temp_data) <- c("deaths", "GEOID")
-  fips = substring(data$fips[1], 1, 2) #get fips code of the state
-  
-  #download map shape
-  map.shape = tigris::counties(state = fips, 
-                               cb = TRUE,
-                               resolution='500k')
-  
-  #convert tabular data into geo-spatial data
-  leafmap <- geo_join(map.shape, 
-                      temp_data, 
-                      by = "GEOID")
-  
-  #color color palette
-  roundUp <- function(x) 10^ceiling(log10(x))
-  risk.bins <-c(0, 
-                ceiling(max(temp_data$deaths) * 1/1000), 
-                ceiling(max(temp_data$deaths) * 1/100), 
-                ceiling(max(temp_data$deaths) * 1/50), 
-                ceiling(max(temp_data$deaths) * 1/30), 
-                ceiling(max(temp_data$deaths) * 1/10), 
-                ceiling(max(temp_data$deaths))
-  )
-  pal <- colorBin("YlOrRd", 
-                  domain = temp_data$deaths,
-                  bins = risk.bins
-  )
-  #make map
-  temp_fig = leaflet(data = leafmap,
-                     options = leafletOptions(minZoom = 5)
-  ) %>% 
-    addTiles() %>% 
-    addPolygons(fillColor = ~pal(deaths), 
-                fillOpacity = 1, 
-                color = "#b2aeae",
-                weight = 1,
-                smoothFactor = 0.5,
-                popup = paste0("County: ", 
-                               leafmap$NAME,
-                               "<br>",
-                               "Number of fatality: ",
-                               prettyNum(leafmap$deaths, 
-                                         big.mark=",", 
-                                         scientific = FALSE)
-                ),
-                highlightOptions = highlightOptions(color = "white", 
-                                                    weight = 2,
-                                                    bringToFront = TRUE)
-    ) %>%
-    addLegend(pal = pal, 
-              values = data$deaths, 
-              opacity = 1) %>%
-    setMaxBounds( lng1 = state_bounding$xmin,
-                  lat1 = state_bounding$ymin,
-                  lng2 = state_bounding$xmax,
-                  lat2 = state_bounding$ymax)
-  
-  return(temp_fig)
+total_case <- function(x){
+  temp_data = x
+  todate_temp_data = x[x$date == Sys.Date() - 2, ]
+  temp = prettyNum(todate_temp_data$cases, 
+                                    big.mark=",", 
+                                    scientific = FALSE)
+}
+
+total_death <- function(x){
+  temp_data = x
+  todate_temp_data = x[x$date == Sys.Date() - 2, ]
+  temp = prettyNum(todate_temp_data$deaths, 
+                   big.mark=",", 
+                   scientific = FALSE)
 }
