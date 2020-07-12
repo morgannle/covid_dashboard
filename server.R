@@ -75,6 +75,15 @@ server <- function(input, output, session) {
   #collapse the list of list
   covid19_timeseries_data = do.call(rbind, covid19_timeseries_data)
   
+  # 
+  selected_state_data = reactive(
+    covid19_state_data[covid19_state_data$state == selected_state(), ]
+    )
+  
+  selected_county_data = reactive(
+    covid19_county_data[covid19_county_data$state == selected_state(), ]
+  )
+  
   #drawing heat map of case and death in every states
   selected_state_heatmap_data = reactive(
     covid19_county_data[covid19_county_data$state == selected_state(), ]
@@ -93,29 +102,41 @@ server <- function(input, output, session) {
   temp_timeplot_deaths = reactive(
     plot_death(selected_state_timeseries_data())
     )
-  
-  #
-  selected_state_data = reactive(
-    covid19_state_data[covid19_state_data$state == selected_state(), ]
-    )
 
   output$cases_timeseries = renderLeaflet(temp_timeplot_cases())
   output$deaths_timeseries = renderLeaflet(temp_timeplot_deaths())
-  output$heatmap_cases = renderLeaflet(temp_state_heatmap())                                   
-  #output$state_cases_barplot = renderPlotly(current_us_state_cases_barplot)
-  #output$state_deaths_barplot = renderPlotly(current_us_state_deaths_barplot)
+  
+  output$heatmap = renderLeaflet(temp_state_heatmap())    
+  
+  output$state_cases_barplot = renderPlotly(
+                                            barplot_case(selected_county_data())
+                                            )
+  output$state_deaths_barplot = renderPlotly(
+                                            barplot_death(selected_county_data())
+                                             )
   output$valuebox_total_case = renderValueBox(
-    valueBox(total_case(selected_state_data()), 
-             width = 3, 
-             icon = icon("stethoscope"),
-             subtitle = "Total Cases",
+    valueBox(total_case_valuebox(selected_state_data()), 
+             width = 2, 
+             subtitle = "Number of Cases",
              )
     )
+  output$valuebox_new_case = renderValueBox(
+    valueBox(new_case_valuebox(selected_state_data()), 
+             width = 2, 
+             subtitle = "New Cases",
+    )
+  )
   output$valuebox_total_death = renderValueBox(
-    valueBox(total_death(selected_state_data()), 
-             width = 3, 
-             icon = icon("stethoscope"),
+    valueBox(total_death_valuebox(selected_state_data()), 
+             width = 2, 
+             icon = icon("<abacus"),
              subtitle = "Total Fatality",
+    )
+  )
+  output$valuebox_new_death = renderValueBox(
+    valueBox(new_death_valuebox(selected_state_data()), 
+             width = 2, 
+             subtitle = "New Fatality",
     )
   )
   

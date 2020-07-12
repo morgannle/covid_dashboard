@@ -1,5 +1,5 @@
 state_bounding_box = read.csv("state_bounding_box.csv")
-
+day = Sys.Date() - 2
 #plot new cases
 plot_case <- function(x){
   temp_state = as.data.frame(x)
@@ -151,7 +151,7 @@ plot_map_state <- function(x){
   #get state bounding box
   state_bounding = state_bounding_box[state_bounding_box$NAME == state_name, ]
   #get most recent data
-  data = data[data$date == Sys.Date() - 2, ]
+  data = data[data$date == day, ]
   
   temp_data_cases = subset(data, 
                            select = c("cases", "fips")
@@ -261,28 +261,87 @@ plot_map_state <- function(x){
       #overlayGroups = c ("Infected", "Fatality"),
       position = "topleft",
       options = layersControlOptions(collapsed = FALSE)
-      ) %>%
+      ) %>% 
     #set max bound
     setMaxBounds( lng1 = state_bounding$xmin,
                   lat1 = state_bounding$ymin,
                   lng2 = state_bounding$xmax,
-                  lat2 = state_bounding$ymax)
-  
+                  lat2 = state_bounding$ymax)   
   return(temp_fig)
 }
 
-total_case <- function(x){
-  temp_data = x
-  todate_temp_data = x[x$date == Sys.Date() - 2, ]
+total_case_valuebox <- function(x){
+  todate_temp_data = x[x$date == day, ]
   temp = prettyNum(todate_temp_data$cases, 
                                     big.mark=",", 
                                     scientific = FALSE)
 }
 
-total_death <- function(x){
-  temp_data = x
-  todate_temp_data = x[x$date == Sys.Date() - 2, ]
+new_case_valuebox <- function(x){
+  todate_temp_data = x[x$date == day, ]$cases - x[x$date == day - 1, ]$cases
+  
+  temp = prettyNum(todate_temp_data, 
+                   big.mark=",", 
+                   scientific = FALSE)
+}
+
+total_death_valuebox <- function(x){
+  todate_temp_data = x[x$date == day, ]
   temp = prettyNum(todate_temp_data$deaths, 
                    big.mark=",", 
                    scientific = FALSE)
+}
+
+new_death_valuebox <- function(x){
+  todate_temp_data = x[x$date == day, ]$deaths - x[x$date == day - 1, ]$deaths
+  
+  temp = prettyNum(todate_temp_data, 
+                   big.mark=",", 
+                   scientific = FALSE)
+}
+
+barplot_case <- function(x){
+  temp_data = x[x$date == day, ]
+  temp_data$county = factor(temp_data$county,
+                           levels = unique(temp_data$county[order(temp_data$cases, decreasing = FALSE)]))
+  temp_fig = plot_ly(temp_data,
+                      y = ~county,
+                      x = ~cases,
+                      color = I("darkslategray4"),
+                      type = 'bar',
+                      orientation = 'h') %>%
+                                         layout(
+                                                title = "COVID 19 cases in each county",
+                                                xaxis=list(fixedrange=TRUE,
+                                                            showline = FALSE),
+                                                yaxis=list(fixedrange=TRUE,
+                                                            title = " ",
+                                                            showline = FALSE),
+                                                            height = 1000
+                                                            ) %>%
+                                                              config(displayModeBar = FALSE)
+  return(temp_fig)
+}
+
+barplot_death <- function(x){
+  temp_data = x[x$date == day, ]
+  temp_data$county = factor(temp_data$county,
+                            levels = unique(temp_data$county[order(temp_data$deaths, decreasing = FALSE)]))
+  temp_fig = plot_ly(temp_data,
+                     y = ~county,
+                     x = ~deaths,
+                     color = I("steelblue"),
+                     type = 'bar',
+                     orientation = 'h') %>%
+                                        layout(
+                                                title = "COVID 19 fatality in each county",
+                                                xaxis=list(fixedrange=TRUE,
+                                                            showline = FALSE),
+                                                yaxis=list(fixedrange=TRUE,
+                                                            title = " ",
+                                                            showline = FALSE),
+                                                            height = 1000
+                                                ) %>%
+                                                  config(displayModeBar = FALSE)
+  return(temp_fig)
 }

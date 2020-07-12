@@ -17,8 +17,10 @@ body_colwise <- dashboardBody(
     ),
   
   fluidRow(
-    valueBoxOutput("valuebox_total_case"),
-    valueBoxOutput("valuebox_total_death"),
+    valueBoxOutput("valuebox_total_case", width = 3),
+    valueBoxOutput("valuebox_new_case", width = 3),
+    valueBoxOutput("valuebox_total_death", width = 3),
+    valueBoxOutput("valuebox_new_death", width = 3)
   ),
   
   fluidRow(
@@ -26,7 +28,7 @@ body_colwise <- dashboardBody(
       title = "Heatmap",
       width = 8,
       height = '500',
-      leafletOutput("heatmap_cases")
+      leafletOutput("heatmap")
       ),
     tabBox(
       title = "State Data",
