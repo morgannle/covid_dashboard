@@ -19,7 +19,7 @@ f = list(
   color = "#00008b"
 )
 #plot new cases
-plot_case <- function(x){
+plot_case = function(x){
   temp_state = as.data.frame(x)
   temp_state$date = as.Date(temp_state$date)
   
@@ -82,7 +82,7 @@ plot_case <- function(x){
 }
 
 #plot new deaths
-plot_death <- function(x){
+plot_death = function(x){
   temp_state = as.data.frame(x)
   temp_state$date = as.Date(temp_state$date)
   
@@ -146,7 +146,7 @@ plot_death <- function(x){
 }
 
 #this function calculate new cases and new deaths
-diff <- function(x){
+diff = function(x){
   temp = as.data.frame(x)
   temp = x %>% mutate(
     cases_diff = cases - lag(cases),
@@ -156,13 +156,13 @@ diff <- function(x){
 }
 
 #this function replace NA with 0
-replaceNA <- function(x){
+replaceNA = function(x){
   temp = x %>% replace(is.na(.), 0)
   return(temp)
 }
 
 #this function plot heatmap for total cases
-plot_map_state <- function(x){
+plot_map = function(x){
   data = x
   #get state name
   state_name = unique(data$state)
@@ -178,8 +178,8 @@ plot_map_state <- function(x){
                             select = c("deaths", "fips")
   )
   
-  colnames(temp_data_cases) <- c("cases", "GEOID")
-  colnames(temp_data_deaths) <- c("deaths", "GEOID")
+  colnames(temp_data_cases) = c("cases", "GEOID")
+  colnames(temp_data_deaths) = c("deaths", "GEOID")
   
   fips = substring(data$fips[1], 1, 2) #get fips code of the state
   
@@ -189,16 +189,18 @@ plot_map_state <- function(x){
                                resolution='500k')
   
   #convert tabular data into geo-spatial data
-  map_cases <- geo_join(map.shape, 
+  #create temp_object
+  temp_object = list()
+  map_cases = geo_join(map.shape, 
                         temp_data_cases, 
                         by = "GEOID")
-  map_deaths <- geo_join(map.shape, 
+  map_deaths = geo_join(map.shape, 
                          temp_data_deaths, 
                          by = "GEOID")
   
   #color palette
-  roundUp <- function(x) 10^ceiling(log10(x))
-  risk_bins_cases <-c(
+  roundUp = function(x) 10^ceiling(log10(x))
+  risk_bins_cases =c(
     0, 
     ceiling(max(temp_data_cases$cases) * 0.01), 
     ceiling(max(temp_data_cases$cases) * 0.05), 
@@ -208,15 +210,20 @@ plot_map_state <- function(x){
     ceiling(max(temp_data_cases$cases))
   )
   
-  pal_cases <- colorBin("YlOrRd", 
+  pal_cases = colorBin("YlOrRd", 
                         domain = temp_data_cases$cases,
                         bins = risk_bins_cases
                         )
-  pal_deaths <- colorNumeric("Purples", 
+  pal_deaths = colorNumeric("Purples", 
                             domain = temp_data_deaths$deaths
                             )
+  #store data in temp_object
+  temp_object[[1]] = map_cases
+  temp_object[[2]] = pal_cases
+  temp_object[[3]] = map_deaths
+  temp_object[[4]] = pal_deaths
   #make map
-  temp_fig = leaflet(options = leafletOptions(minZoom = 5)) %>% 
+  temp_object[[5]] = leaflet(options = leafletOptions(minZoom = 5)) %>% 
     addTiles() %>% 
     #add positive cases layer
     addPolygons(
@@ -261,17 +268,13 @@ plot_map_state <- function(x){
                                           bringToFront = TRUE)
     ) %>%
     #add legends
+    #add legends
     addLegend(
-      title = "Positive Cases",
+      title = "Infected",
+      position="bottomright",
       pal = pal_cases, 
       values = map_cases$cases, 
       group = "Infected",
-      opacity = 1) %>%
-    addLegend(
-      title = "Fatality",
-      pal = pal_deaths, 
-      values = map_deaths$deaths,
-      group = "Fatality",
       opacity = 1) %>%
     #add layer control
     addLayersControl(
@@ -285,17 +288,17 @@ plot_map_state <- function(x){
                   lat1 = state_bounding$ymin,
                   lng2 = state_bounding$xmax,
                   lat2 = state_bounding$ymax)   
-  return(temp_fig)
+  return(temp_object)
 }
 
-total_case_valuebox <- function(x){
+total_case_valuebox = function(x){
   todate_temp_data = x[x$date == day, ]
   temp = prettyNum(todate_temp_data$cases, 
                                     big.mark=",", 
                                     scientific = FALSE)
 }
 
-new_case_valuebox <- function(x){
+new_case_valuebox = function(x){
   todate_temp_data = x[x$date == day, ]$cases - x[x$date == day - 1, ]$cases
   
   temp = prettyNum(todate_temp_data, 
@@ -303,14 +306,14 @@ new_case_valuebox <- function(x){
                    scientific = FALSE)
 }
 
-total_death_valuebox <- function(x){
+total_death_valuebox = function(x){
   todate_temp_data = x[x$date == day, ]
   temp = prettyNum(todate_temp_data$deaths, 
                    big.mark=",", 
                    scientific = FALSE)
 }
 
-new_death_valuebox <- function(x){
+new_death_valuebox = function(x){
   todate_temp_data = x[x$date == day, ]$deaths - x[x$date == day - 1, ]$deaths
   
   temp = prettyNum(todate_temp_data, 
@@ -318,7 +321,7 @@ new_death_valuebox <- function(x){
                    scientific = FALSE)
 }
 
-barplot_case <- function(x){
+barplot_case = function(x){
   temp_data = x[x$date == day, ]
   temp_data$county = factor(temp_data$county,
                            levels = unique(temp_data$county[order(temp_data$cases, decreasing = FALSE)]))
@@ -342,7 +345,7 @@ barplot_case <- function(x){
   return(temp_fig)
 }
 
-barplot_death <- function(x){
+barplot_death = function(x){
   temp_data = x[x$date == day, ]
   temp_data$county = factor(temp_data$county,
                             levels = unique(temp_data$county[order(temp_data$deaths, decreasing = FALSE)]))
@@ -366,7 +369,7 @@ barplot_death <- function(x){
   return(temp_fig)
 }
 
-by_gender <- function(x){
+by_gender = function(x){
   temp_data = as.data.frame(x)
   temp_data = subset(
     temp_data[temp_data$data_as_of == max(temp_data$data_as_of), ],
@@ -385,7 +388,7 @@ by_gender <- function(x){
   return(temp_fig)
 }
 
-by_age <- function(x){
+by_age = function(x){
   temp_data = as.data.frame(x)
   #get most recent "sex", "age_group" and "covid_19_deaths" column
   temp_data = subset(temp_data[temp_data$data_as_of == max(temp_data$data_as_of), ],
@@ -439,7 +442,7 @@ by_age <- function(x){
   return(temp_fig)
 }
 
-compare <- function(x){
+compare = function(x){
   temp_data = as.data.frame(x)
   #get most recent "sex", "age_group" and "covid_19_deaths" column
   temp_data = subset(temp_data[temp_data$data_as_of == max(temp_data$data_as_of), ],

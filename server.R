@@ -79,8 +79,11 @@ server <- function(input, output, session) {
   selected_state_heatmap_data = reactive(
     covid19_county_data[covid19_county_data$state == selected_state(), ]
     )
-  temp_state_heatmap = reactive(
-    plot_map_state(selected_state_heatmap_data())
+  temp_state_object = reactive(
+    plot_map(selected_state_heatmap_data())
+    )
+  temp_state_map = reactive(
+    temp_state_object()[[5]]
     )
   
   #drawing timeseries plot of case and death in every states
@@ -111,7 +114,23 @@ server <- function(input, output, session) {
   output$cases_timeseries = renderLeaflet(temp_timeplot_cases())
   output$deaths_timeseries = renderLeaflet(temp_timeplot_deaths())
   
-  output$heatmap = renderLeaflet(temp_state_heatmap())    
+  output$heatmap = renderLeaflet(temp_state_map())
+  observeEvent(input$heatmap_groups,{
+    heatmap <- leafletProxy("heatmap")
+    heatmap %>% clearControls()
+    if (input$heatmap_groups == 'Infected') {
+      heatmap %>% addLegend(position="bottomright", 
+                            pal = temp_state_object()[[2]], 
+                            values = temp_state_object()[[1]]$cases, 
+                            title = "Infected")
+    }
+    else if (input$heatmap_groups == 'Fatality') {
+      heatmap %>% addLegend(position="bottomright", 
+                            pal = temp_state_object()[[4]], 
+                            values = temp_state_object()[[3]]$deaths, 
+                            title="Fatality")}
+    }
+  )
   
   output$state_cases_barplot = renderPlotly(
                                             barplot_case(selected_county_data())
