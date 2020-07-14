@@ -1,18 +1,6 @@
 wd = "C:/Users/nghia/OneDrive/Documents/GitHub/covid_dashboard"
 setwd(wd)
-
 source("functions.R")
-library('readr')
-library('dplyr')
-library('plotly')
-library('zoo')
-library('shinydashboard')
-library('blscrapeR')
-library('leaflet')
-library('tigris')
-
-county_file_url = "https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv"
-us_file_url     = "https://raw.githubusercontent.com/nytimes/covid-19-data/master/us.csv"
 
 server <- function(input, output, session) {
   
@@ -20,6 +8,9 @@ server <- function(input, output, session) {
     url(county_file_url)
   )
   
+  fatality_by_gender = read_csv(
+    url(fatality_by_gender_url)
+    )
   selected_state = reactive(input$select)
   
   covid19_county_data$fips = as.character(covid19_county_data$fips)
@@ -102,7 +93,21 @@ server <- function(input, output, session) {
   temp_timeplot_deaths = reactive(
     plot_death(selected_state_timeseries_data())
     )
-
+  
+  #fatality by gender for selected state
+  selected_state_fatality_by_gender_data = reactive(
+    fatality_by_gender[fatality_by_gender$state == selected_state(), ]
+    )
+  pie_chart_fatality_by_gender = reactive(
+    by_gender(selected_state_fatality_by_gender_data())
+  )
+  bar_plot_fatality_by_gender = reactive(
+    by_age(selected_state_fatality_by_gender_data())
+  )
+  comparison_fatality_by_gender = reactive(
+    compare(selected_state_fatality_by_gender_data())
+  )
+  
   output$cases_timeseries = renderLeaflet(temp_timeplot_cases())
   output$deaths_timeseries = renderLeaflet(temp_timeplot_deaths())
   
@@ -138,6 +143,16 @@ server <- function(input, output, session) {
              width = 2, 
              subtitle = "New Fatality",
     )
+  )
+  
+  output$pie_chart = renderPlotly(
+    pie_chart_fatality_by_gender()
+  )
+  output$bar_plot = renderPlotly(
+    bar_plot_fatality_by_gender()
+  )
+  output$compare =renderPlotly(
+    comparison_fatality_by_gender()
   )
   
 }
