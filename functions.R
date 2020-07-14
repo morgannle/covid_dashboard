@@ -1,5 +1,23 @@
+library('readr')
+library('dplyr')
+library('plotly')
+library('zoo')
+library('shinydashboard')
+library('blscrapeR')
+library('leaflet')
+library('tigris')
+county_file_url = "https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv"
+us_file_url     = "https://raw.githubusercontent.com/nytimes/covid-19-data/master/us.csv"
+fatality_by_gender_url = "http://data.cdc.gov/resource/9bhg-hcku.csv?$limit=10000&$$app_token=Y21ef2T1w3Ub7VVJAF8l3sGGd"
+
 state_bounding_box = read.csv("state_bounding_box.csv")
 day = Sys.Date() - 2
+
+f = list(
+  family = "Courier New, monospace",
+  size = 18,
+  color = "#00008b"
+)
 #plot new cases
 plot_case <- function(x){
   temp_state = as.data.frame(x)
@@ -317,8 +335,9 @@ barplot_case <- function(x){
                                                             showline = FALSE),
                                                 yaxis=list(fixedrange=TRUE,
                                                             title = " ",
-                                                            showline = FALSE),
-                                                            height = 1000
+                                                            showticklabels = TRUE),
+                                                height = nrow(temp_data) * 25
+                                                
                                                             ) %>%
                                                               config(displayModeBar = FALSE)
   return(temp_fig)
@@ -340,8 +359,9 @@ barplot_death <- function(x){
                                                             showline = FALSE),
                                                 yaxis=list(fixedrange=TRUE,
                                                             title = " ",
-                                                            showline = FALSE),
-                                                            height = 1000
+                                                            showline = FALSE,
+                                                            automargin = TRUE),
+                                                            height =  nrow(temp_data) * 25
                                                 ) %>%
                                                   config(displayModeBar = FALSE)
   return(temp_fig)
@@ -358,10 +378,17 @@ by_gender <- function(x){
   temp_fig = plot_ly(labels = c("Male", "Female"),
                      values = c(male_total, female_total),
                      marker = list(
+<<<<<<< HEAD
                        colors = c(I("steelblue"), I("pink"))
                      ),
                      type = 'pie') %>%
     config(displayModeBar = FALSE)
+=======
+                                    colors = c(I("steelblue"), I("pink"))
+                                   ),
+                     type = 'pie') %>%
+                                    config(displayModeBar = FALSE)
+>>>>>>> parent of 29afdd4... Revert "Update 7/12/2020"
   temp_fig = temp_fig %>% layout(title = "Fatality by Gender")
   return(temp_fig)
 }
@@ -388,6 +415,7 @@ by_age <- function(x){
                      text = ~paste( '</br>Gender: Male',
                                     '</br>Age group: ', temp_data_male$age_group,
                                     '</br>Fatality: ', temp_data_male$covid_19_deaths)
+<<<<<<< HEAD
   ) %>%
     add_trace(
       y = ~temp_data_female$covid_19_deaths,
@@ -417,6 +445,37 @@ by_age <- function(x){
       )
     ) %>%
     config(displayModeBar = FALSE)
+=======
+                     ) %>%
+                        add_trace(
+                                  y = ~temp_data_female$covid_19_deaths,
+                                  name = "Female",
+                                  color = I("pink"),
+                                  text = ~paste('</br>Gender: Female',
+                                                '</br>Age group: ', temp_data_female$age_group,
+                                                '</br>Fatality: ', temp_data_female$covid_19_deaths)
+                                              ) %>%
+                                                layout(barmode = "group",
+                                                       legend = list(x = 0, y = 1))
+  temp_fig = temp_fig %>%
+                      layout(
+                              title = "Fatality by Age Group",
+                              xaxis=list(
+                                          title = "",
+                                          fixedrange = TRUE,
+                                          showline = FALSE,
+                                          showgrid = FALSE
+                                          ),
+                              yaxis=list(
+                                          title = "Fatality",
+                                          fixedrange=TRUE,
+                                          showticklabels = TRUE,
+                                          showline = FALSE,
+                                          showgrid = FALSE
+                                          )
+                              ) %>%
+                                config(displayModeBar = FALSE)
+>>>>>>> parent of 29afdd4... Revert "Update 7/12/2020"
   return(temp_fig)
 }
 
@@ -432,6 +491,7 @@ compare <- function(x){
   temp_data_female = temp_data_female[!((temp_data_female$covid_19_deaths == 0) | (is.na(temp_data_female$covid_19_deaths) == TRUE)), ]
   temp_fig = plot_ly()
   temp_fig = temp_fig %>% add_pie(
+<<<<<<< HEAD
     labels = temp_data_male$age_group,
     values = temp_data_male$covid_19_deaths,
     name = "Male",
@@ -464,5 +524,39 @@ compare <- function(x){
                  showticklabels = FALSE)
   ) %>%
     config(displayModeBar = FALSE)
+=======
+                                  labels = temp_data_male$age_group,
+                                  values = temp_data_male$covid_19_deaths,
+                                  name = "Male",
+                                  domain = list(
+                                    x = c(0, 0.5),
+                                    y = c(0.25, 0.75)
+                                    ),
+                                  title = list(text = 'Male Fatality', 
+                                               font = f)
+                                  )
+  temp_fig = temp_fig %>% add_pie(
+                                  labels = temp_data_female$age_group,
+                                  values = temp_data_female$covid_19_deaths,
+                                  name = "Female",
+                                  domain = list(
+                                    x = c(0.5, 1),
+                                    y = c(0.25, 0.75)
+                                    ),
+                                  title = list(text = 'Female Fatality', 
+                                               font = f)
+                                  )
+  temp_fig = temp_fig %>% layout(
+                                  title = "Fatality Between Genders and Age Groups Comparison", 
+                                  showlegend = FALSE,
+                                  xaxis = list(showgrid = FALSE, 
+                                               zeroline = FALSE, 
+                                               showticklabels = FALSE),
+                                  yaxis = list(showgrid = FALSE, 
+                                               zeroline = FALSE, 
+                                               showticklabels = FALSE)
+                                 ) %>%
+                                    config(displayModeBar = FALSE)
+>>>>>>> parent of 29afdd4... Revert "Update 7/12/2020"
   return(temp_fig)
 }
