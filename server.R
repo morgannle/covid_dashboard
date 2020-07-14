@@ -105,7 +105,11 @@ server <- function(input, output, session) {
   selected_state_fatality_by_gender_data = reactive(
     fatality_by_gender[fatality_by_gender$state == selected_state(), ]
 <<<<<<< HEAD
+<<<<<<< HEAD
   )
+=======
+    )
+>>>>>>> parent of 29afdd4... Revert "Update 7/12/2020"
 =======
     )
 >>>>>>> parent of 29afdd4... Revert "Update 7/12/2020"
@@ -120,7 +124,10 @@ server <- function(input, output, session) {
   )
   
 <<<<<<< HEAD
+<<<<<<< HEAD
 
+=======
+>>>>>>> parent of 29afdd4... Revert "Update 7/12/2020"
 =======
 >>>>>>> parent of 29afdd4... Revert "Update 7/12/2020"
   output$cases_timeseries = renderLeaflet(temp_timeplot_cases())

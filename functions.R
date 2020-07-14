@@ -379,15 +379,21 @@ by_gender <- function(x){
                      values = c(male_total, female_total),
                      marker = list(
 <<<<<<< HEAD
+<<<<<<< HEAD
                        colors = c(I("steelblue"), I("pink"))
                      ),
                      type = 'pie') %>%
     config(displayModeBar = FALSE)
 =======
+=======
+>>>>>>> parent of 29afdd4... Revert "Update 7/12/2020"
                                     colors = c(I("steelblue"), I("pink"))
                                    ),
                      type = 'pie') %>%
                                     config(displayModeBar = FALSE)
+<<<<<<< HEAD
+>>>>>>> parent of 29afdd4... Revert "Update 7/12/2020"
+=======
 >>>>>>> parent of 29afdd4... Revert "Update 7/12/2020"
   temp_fig = temp_fig %>% layout(title = "Fatality by Gender")
   return(temp_fig)
@@ -415,6 +421,7 @@ by_age <- function(x){
                      text = ~paste( '</br>Gender: Male',
                                     '</br>Age group: ', temp_data_male$age_group,
                                     '</br>Fatality: ', temp_data_male$covid_19_deaths)
+<<<<<<< HEAD
 <<<<<<< HEAD
   ) %>%
     add_trace(
@@ -446,6 +453,8 @@ by_age <- function(x){
     ) %>%
     config(displayModeBar = FALSE)
 =======
+=======
+>>>>>>> parent of 29afdd4... Revert "Update 7/12/2020"
                      ) %>%
                         add_trace(
                                   y = ~temp_data_female$covid_19_deaths,
@@ -475,6 +484,9 @@ by_age <- function(x){
                                           )
                               ) %>%
                                 config(displayModeBar = FALSE)
+<<<<<<< HEAD
+>>>>>>> parent of 29afdd4... Revert "Update 7/12/2020"
+=======
 >>>>>>> parent of 29afdd4... Revert "Update 7/12/2020"
   return(temp_fig)
 }
@@ -491,6 +503,7 @@ compare <- function(x){
   temp_data_female = temp_data_female[!((temp_data_female$covid_19_deaths == 0) | (is.na(temp_data_female$covid_19_deaths) == TRUE)), ]
   temp_fig = plot_ly()
   temp_fig = temp_fig %>% add_pie(
+<<<<<<< HEAD
 <<<<<<< HEAD
     labels = temp_data_male$age_group,
     values = temp_data_male$covid_19_deaths,
@@ -525,6 +538,8 @@ compare <- function(x){
   ) %>%
     config(displayModeBar = FALSE)
 =======
+=======
+>>>>>>> parent of 29afdd4... Revert "Update 7/12/2020"
                                   labels = temp_data_male$age_group,
                                   values = temp_data_male$covid_19_deaths,
                                   name = "Male",
@@ -557,6 +572,9 @@ compare <- function(x){
                                                showticklabels = FALSE)
                                  ) %>%
                                     config(displayModeBar = FALSE)
+<<<<<<< HEAD
+>>>>>>> parent of 29afdd4... Revert "Update 7/12/2020"
+=======
 >>>>>>> parent of 29afdd4... Revert "Update 7/12/2020"
   return(temp_fig)
 }

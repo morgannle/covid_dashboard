@@ -61,6 +61,7 @@ body_colwise <- dashboardBody(
       )
     ),
     tabBox(
+<<<<<<< HEAD
       width = 6,
       title = "Fatality Demographic",
       tabPanel(
@@ -79,16 +80,26 @@ body_colwise <- dashboardBody(
     ),
   tabBox(
     box(
+=======
+>>>>>>> parent of 29afdd4... Revert "Update 7/12/2020"
       width = 6,
       title = "Fatality Demographic",
       tabPanel(
         "By Gender",
         plotlyOutput("pie_chart")
+<<<<<<< HEAD
       ),
       tabPanel(
         "By Age Group",
         plotlyOutput("bar_plot")
       ),
+=======
+        ),
+      tabPanel(
+        "By Age Group",
+        plotlyOutput("bar_plot")
+        ),
+>>>>>>> parent of 29afdd4... Revert "Update 7/12/2020"
       tabPanel(
         "Comparison",
         plotlyOutput("compare")
