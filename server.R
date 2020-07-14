@@ -36,6 +36,10 @@ server <- function(input, output, session) {
     summarise(cases = sum(cases),
               deaths = sum(deaths)
               )
+  #
+  fatality_by_gender = read_csv(
+    url(fatality_by_gender_url)
+  )
   
   #get state names and number of states
   state_name = unique(covid19_county_data$state)
@@ -88,8 +92,11 @@ server <- function(input, output, session) {
   selected_state_heatmap_data = reactive(
     covid19_county_data[covid19_county_data$state == selected_state(), ]
     )
-  temp_state_heatmap = reactive(
+  temp_state_object = reactive(
     plot_map_state(selected_state_heatmap_data())
+    )
+  temp_state_heatmap = reactive(
+    temp_state_object()[[1]]
     )
   
   #drawing timeseries plot of case and death in every states
@@ -102,11 +109,27 @@ server <- function(input, output, session) {
   temp_timeplot_deaths = reactive(
     plot_death(selected_state_timeseries_data())
     )
+  
+  #fatality by gender for selected state
+  selected_state_fatality_by_gender_data = reactive(
+    fatality_by_gender[fatality_by_gender$state == selected_state(), ]
+  )
+  pie_chart_fatality_by_gender = reactive(
+    by_gender(selected_state_fatality_by_gender_data())
+  )
+  bar_plot_fatality_by_gender = reactive(
+    by_age(selected_state_fatality_by_gender_data())
+  )
+  comparison_fatality_by_gender = reactive(
+    compare(selected_state_fatality_by_gender_data())
+  )
+  
 
   output$cases_timeseries = renderLeaflet(temp_timeplot_cases())
   output$deaths_timeseries = renderLeaflet(temp_timeplot_deaths())
   
-  output$heatmap = renderLeaflet(temp_state_heatmap())    
+  output$heatmap = renderLeaflet(temp_state_heatmap())
+ 
   
   output$state_cases_barplot = renderPlotly(
                                             barplot_case(selected_county_data())
@@ -138,6 +161,16 @@ server <- function(input, output, session) {
              width = 2, 
              subtitle = "New Fatality",
     )
+  )
+  
+  output$pie_chart = renderPlotly(
+    pie_chart_fatality_by_gender()
+  )
+  output$bar_plot = renderPlotly(
+    bar_plot_fatality_by_gender()
+  )
+  output$compare =renderPlotly(
+    comparison_fatality_by_gender()
   )
   
 }

@@ -64,6 +64,24 @@ body_colwise <- dashboardBody(
       width = 6,
       title = "Fatality Demographic"
       )
+    ),
+  tabBox(
+    box(
+      width = 6,
+      title = "Fatality Demographic",
+      tabPanel(
+        "By Gender",
+        plotlyOutput("pie_chart")
+      ),
+      tabPanel(
+        "By Age Group",
+        plotlyOutput("bar_plot")
+      ),
+      tabPanel(
+        "Comparison",
+        plotlyOutput("compare")
+        )
+      )
     )
   )
 

@@ -198,7 +198,8 @@ plot_map_state <- function(x){
                             domain = temp_data_deaths$deaths
                             )
   #make map
-  temp_fig = leaflet(options = leafletOptions(minZoom = 5)) %>% 
+  return_object = list()
+  return_object[[1]] = leaflet(options = leafletOptions(minZoom = 5)) %>% 
     addTiles() %>% 
     #add positive cases layer
     addPolygons(
@@ -266,8 +267,8 @@ plot_map_state <- function(x){
     setMaxBounds( lng1 = state_bounding$xmin,
                   lat1 = state_bounding$ymin,
                   lng2 = state_bounding$xmax,
-                  lat2 = state_bounding$ymax)   
-  return(temp_fig)
+                  lat2 = state_bounding$ymax)
+  return(return_object)
 }
 
 total_case_valuebox <- function(x){
@@ -343,5 +344,125 @@ barplot_death <- function(x){
                                                             height = 1000
                                                 ) %>%
                                                   config(displayModeBar = FALSE)
+  return(temp_fig)
+}
+
+by_gender <- function(x){
+  temp_data = as.data.frame(x)
+  temp_data = subset(
+    temp_data[temp_data$data_as_of == max(temp_data$data_as_of), ],
+    select = c("sex", "age_group", "covid_19_deaths")
+  )
+  male_total = temp_data[(temp_data$sex == "Male") & (temp_data$age_group == "All ages"), "covid_19_deaths"]
+  female_total = temp_data[(temp_data$sex == "Female") & (temp_data$age_group == "All ages"), "covid_19_deaths"]
+  temp_fig = plot_ly(labels = c("Male", "Female"),
+                     values = c(male_total, female_total),
+                     marker = list(
+                       colors = c(I("steelblue"), I("pink"))
+                     ),
+                     type = 'pie') %>%
+    config(displayModeBar = FALSE)
+  temp_fig = temp_fig %>% layout(title = "Fatality by Gender")
+  return(temp_fig)
+}
+
+by_age <- function(x){
+  temp_data = as.data.frame(x)
+  #get most recent "sex", "age_group" and "covid_19_deaths" column
+  temp_data = subset(temp_data[temp_data$data_as_of == max(temp_data$data_as_of), ],
+                     select = c("sex", "age_group", "covid_19_deaths"))
+  temp_data = temp_data[!((temp_data$age_group == "All ages") | (temp_data$sex == "All")), ] 
+  temp_data_male = temp_data[temp_data$sex == "Male", ]
+  #setting order for x-axis label
+  temp_data_male$order = c(1:nrow(temp_data_male))
+  temp_data_male$age_group = factor(temp_data_male$age_group,
+                                    levels = unique(temp_data_male$age_group[order(temp_data_male$order, 
+                                                                                   decreasing = FALSE)]))
+  temp_data_female = temp_data[temp_data$sex == "Female", ]
+  temp_fig = plot_ly(x = ~temp_data_male$age_group,
+                     y = ~temp_data_male$covid_19_deaths,
+                     type = "bar",
+                     name = "Male",
+                     color = I("steelblue"),
+                     hoverinfo = 'text',
+                     text = ~paste( '</br>Gender: Male',
+                                    '</br>Age group: ', temp_data_male$age_group,
+                                    '</br>Fatality: ', temp_data_male$covid_19_deaths)
+  ) %>%
+    add_trace(
+      y = ~temp_data_female$covid_19_deaths,
+      name = "Female",
+      color = I("pink"),
+      text = ~paste('</br>Gender: Female',
+                    '</br>Age group: ', temp_data_female$age_group,
+                    '</br>Fatality: ', temp_data_female$covid_19_deaths)
+    ) %>%
+    layout(barmode = "group",
+           legend = list(x = 0, y = 1))
+  temp_fig = temp_fig %>%
+    layout(
+      title = "Fatality by Age Group",
+      xaxis=list(
+        title = "",
+        fixedrange = TRUE,
+        showline = FALSE,
+        showgrid = FALSE
+      ),
+      yaxis=list(
+        title = "Fatality",
+        fixedrange=TRUE,
+        showticklabels = TRUE,
+        showline = FALSE,
+        showgrid = FALSE
+      )
+    ) %>%
+    config(displayModeBar = FALSE)
+  return(temp_fig)
+}
+
+compare <- function(x){
+  temp_data = as.data.frame(x)
+  #get most recent "sex", "age_group" and "covid_19_deaths" column
+  temp_data = subset(temp_data[temp_data$data_as_of == max(temp_data$data_as_of), ],
+                     select = c("sex", "age_group", "covid_19_deaths"))
+  temp_data = temp_data[!((temp_data$age_group == "All ages") | (temp_data$sex == "All")), ] 
+  temp_data_male = temp_data[temp_data$sex == "Male", ]
+  temp_data_male = temp_data_male[!((temp_data_male$covid_19_deaths == 0) | (is.na(temp_data_male$covid_19_deaths) == TRUE)), ]
+  temp_data_female = temp_data[temp_data$sex == "Female", ]
+  temp_data_female = temp_data_female[!((temp_data_female$covid_19_deaths == 0) | (is.na(temp_data_female$covid_19_deaths) == TRUE)), ]
+  temp_fig = plot_ly()
+  temp_fig = temp_fig %>% add_pie(
+    labels = temp_data_male$age_group,
+    values = temp_data_male$covid_19_deaths,
+    name = "Male",
+    domain = list(
+      x = c(0, 0.5),
+      y = c(0.25, 0.75)
+    ),
+    title = list(text = 'Male Fatality', 
+                 font = f)
+  )
+  temp_fig = temp_fig %>% add_pie(
+    labels = temp_data_female$age_group,
+    values = temp_data_female$covid_19_deaths,
+    name = "Female",
+    domain = list(
+      x = c(0.5, 1),
+      y = c(0.25, 0.75)
+    ),
+    title = list(text = 'Female Fatality', 
+                 font = f)
+  )
+  temp_fig = temp_fig %>% layout(
+    title = "Fatality Between Genders and Age Groups Comparison", 
+    showlegend = FALSE,
+    xaxis = list(showgrid = FALSE, 
+                 zeroline = FALSE, 
+                 showticklabels = FALSE),
+    yaxis = list(showgrid = FALSE, 
+                 zeroline = FALSE, 
+                 showticklabels = FALSE)
+  ) %>%
+    config(displayModeBar = FALSE)
   return(temp_fig)
 }
