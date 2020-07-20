@@ -9,10 +9,10 @@ body_colwise <- dashboardBody(
   fluidRow(
     column(
         width = 3,
-        selectizeInput("select", 
-                        label = h3("State: "), 
-                        choices = NULL, 
-                        selected = 14)
+        selectInput("select", 
+                    label = h3("State: "), 
+                    choices = state.name, 
+                    selected = "Alabama")
         )
     ),
   
@@ -76,7 +76,8 @@ body_colwise <- dashboardBody(
         plotlyOutput("compare")
         )
       )
-    )
+    ),
+  fluidRow(tableOutput("obs"))
   )
 
 ui <- dashboardPage(

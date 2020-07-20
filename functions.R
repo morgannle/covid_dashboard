@@ -1,14 +1,15 @@
+library('plotly')
 library('readr')
 library('dplyr')
-library('plotly')
 library('zoo')
 library('shinydashboard')
-library('blscrapeR')
 library('leaflet')
 library('tigris')
-county_file_url = "https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv"
-us_file_url     = "https://raw.githubusercontent.com/nytimes/covid-19-data/master/us.csv"
-fatality_by_gender_url = "http://data.cdc.gov/resource/9bhg-hcku.csv?$limit=10000&$$app_token=Y21ef2T1w3Ub7VVJAF8l3sGGd"
+library('blscrapeR')
+
+county_file_url = "C:/Users/nghia/OneDrive/Documents/GitHub/covid_dashboard/covid19_county_data.csv"
+us_file_url     = "C:/Users/nghia/OneDrive/Documents/GitHub/covid_dashboard/covid19_nation_data.csv"
+fatality_by_gender_url = "C:/Users/nghia/OneDrive/Documents/GitHub/covid_dashboard/fatality_by_gender.csv"
 
 state_bounding_box = read.csv("state_bounding_box.csv")
 day = Sys.Date() - 2
@@ -21,8 +22,15 @@ f = list(
 #plot new cases
 plot_case = function(x){
   temp_state = as.data.frame(x)
-  temp_state$date = as.Date(temp_state$date)
-  
+  temp_state$date = as.Date(
+   temp_state$date
+  )
+  temp_rollmean =  round(
+    rollmean(temp_state$cases_diff, 
+             7, 
+             na.pad = TRUE, 
+             align = 'right')
+  )
   temp_fig = plot_ly(
     x = temp_state$date,
     y = temp_state$cases_diff,
@@ -33,20 +41,17 @@ plot_case = function(x){
     hoverinfo = 'text',
     text = ~paste('</br> Day: ', temp_state$date,
                   '</br> New case: ', temp_state$cases_diff)
-    )
+  )
   
   temp_fig = temp_fig %>% add_trace(
     x = temp_state$date,
-    y = rollmean(temp_state$cases_diff, 
-                 7, 
-                 na.pad = TRUE, 
-                 align = 'right'),
+    y = temp_rollmean,
     name = "7-day Moving Average",
     type = 'scatter',
     mode = 'line',
     color = I("black"),
     hoverinfo = 'text',
-    text = ~paste('Value: ', temp_state$cases_diff)
+    text = ~paste('Value: ', temp_rollmean)
   )
   temp_fig = temp_fig %>% layout(hovermode = 'x',
                                  legend = list(x = 0, y = 1),
@@ -78,14 +83,19 @@ plot_case = function(x){
                                  displaylogo = FALSE)
   return(
     plotly_build(temp_fig)
-    )
+  )
 }
 
 #plot new deaths
 plot_death = function(x){
   temp_state = as.data.frame(x)
   temp_state$date = as.Date(temp_state$date)
-  
+  temp_rollmean = round(
+    rollmean(temp_state$deaths_diff, 
+             7, 
+             na.pad = TRUE, 
+             align = 'right')
+  )
   temp_fig = plot_ly(
     x = temp_state$date,
     y = temp_state$deaths_diff,
@@ -100,16 +110,13 @@ plot_death = function(x){
   
   temp_fig = temp_fig %>% add_trace(
     x = temp_state$date,
-    y = rollmean(temp_state$deaths_diff, 
-                 7, 
-                 na.pad = TRUE, 
-                 align = 'right'),
+    y = temp_rollmean,
     name = "7-day Moving Average",
     type = 'scatter',
     mode = 'line',
     color = I("black"),
     hoverinfo = 'text',
-    text = ~paste('Value: ', temp_state$deaths_diff)
+    text = ~paste('Value: ', temp_rollmean)
   )
   
   temp_fig = temp_fig %>% layout(hovermode = 'x',
@@ -142,7 +149,7 @@ plot_death = function(x){
                                  displaylogo = FALSE)
   return(
     plotly_build(temp_fig)
-    )
+  )
 }
 
 #this function calculate new cases and new deaths
@@ -186,17 +193,18 @@ plot_map = function(x){
   #download map shape
   map.shape = tigris::counties(state = fips, 
                                cb = TRUE,
-                               resolution='500k')
+                               resolution='500k',
+                               year = 2019)
   
   #convert tabular data into geo-spatial data
   #create temp_object
   temp_object = list()
   map_cases = geo_join(map.shape, 
-                        temp_data_cases, 
-                        by = "GEOID")
+                       temp_data_cases, 
+                       by = "GEOID")
   map_deaths = geo_join(map.shape, 
-                         temp_data_deaths, 
-                         by = "GEOID")
+                        temp_data_deaths, 
+                        by = "GEOID")
   
   #color palette
   roundUp = function(x) 10^ceiling(log10(x))
@@ -211,12 +219,12 @@ plot_map = function(x){
   )
   
   pal_cases = colorBin("YlOrRd", 
-                        domain = temp_data_cases$cases,
-                        bins = risk_bins_cases
-                        )
+                       domain = temp_data_cases$cases,
+                       bins = risk_bins_cases
+  )
   pal_deaths = colorNumeric("Purples", 
                             domain = temp_data_deaths$deaths
-                            )
+  )
   #store data in temp_object
   temp_object[[1]] = map_cases
   temp_object[[2]] = pal_cases
@@ -282,7 +290,7 @@ plot_map = function(x){
       #overlayGroups = c ("Infected", "Fatality"),
       position = "topleft",
       options = layersControlOptions(collapsed = FALSE)
-      ) %>% 
+    ) %>% 
     #set max bound
     setMaxBounds( lng1 = state_bounding$xmin,
                   lat1 = state_bounding$ymin,
@@ -294,8 +302,8 @@ plot_map = function(x){
 total_case_valuebox = function(x){
   todate_temp_data = x[x$date == day, ]
   temp = prettyNum(todate_temp_data$cases, 
-                                    big.mark=",", 
-                                    scientific = FALSE)
+                   big.mark=",", 
+                   scientific = FALSE)
 }
 
 new_case_valuebox = function(x){
@@ -324,24 +332,24 @@ new_death_valuebox = function(x){
 barplot_case = function(x){
   temp_data = x[x$date == day, ]
   temp_data$county = factor(temp_data$county,
-                           levels = unique(temp_data$county[order(temp_data$cases, decreasing = FALSE)]))
+                            levels = unique(temp_data$county[order(temp_data$cases, decreasing = FALSE)]))
   temp_fig = plot_ly(temp_data,
-                      y = ~county,
-                      x = ~cases,
-                      color = I("darkslategray4"),
-                      type = 'bar',
-                      orientation = 'h') %>%
-                                         layout(
-                                                title = "COVID 19 cases in each county",
-                                                xaxis=list(fixedrange=TRUE,
-                                                            showline = FALSE),
-                                                yaxis=list(fixedrange=TRUE,
-                                                            title = " ",
-                                                            showticklabels = TRUE),
-                                                height = nrow(temp_data) * 25
-                                                
-                                                            ) %>%
-                                                              config(displayModeBar = FALSE)
+                     y = ~county,
+                     x = ~cases,
+                     color = I("darkslategray4"),
+                     type = 'bar',
+                     orientation = 'h') %>%
+    layout(
+      title = "COVID 19 cases in each county",
+      xaxis=list(fixedrange=TRUE,
+                 showline = FALSE),
+      yaxis=list(fixedrange=TRUE,
+                 title = " ",
+                 showticklabels = TRUE),
+      height = nrow(temp_data) * 25
+      
+    ) %>%
+    config(displayModeBar = FALSE)
   return(temp_fig)
 }
 
@@ -355,17 +363,17 @@ barplot_death = function(x){
                      color = I("steelblue"),
                      type = 'bar',
                      orientation = 'h') %>%
-                                        layout(
-                                                title = "COVID 19 fatality in each county",
-                                                xaxis=list(fixedrange=TRUE,
-                                                            showline = FALSE),
-                                                yaxis=list(fixedrange=TRUE,
-                                                            title = " ",
-                                                            showline = FALSE,
-                                                            automargin = TRUE),
-                                                            height =  nrow(temp_data) * 25
-                                                ) %>%
-                                                  config(displayModeBar = FALSE)
+    layout(
+      title = "COVID 19 fatality in each county",
+      xaxis=list(fixedrange=TRUE,
+                 showline = FALSE),
+      yaxis=list(fixedrange=TRUE,
+                 title = " ",
+                 showline = FALSE,
+                 automargin = TRUE),
+      height =  nrow(temp_data) * 25
+    ) %>%
+    config(displayModeBar = FALSE)
   return(temp_fig)
 }
 
@@ -380,10 +388,10 @@ by_gender = function(x){
   temp_fig = plot_ly(labels = c("Male", "Female"),
                      values = c(male_total, female_total),
                      marker = list(
-                                    colors = c(I("steelblue"), I("pink"))
-                                   ),
+                       colors = c(I("steelblue"), I("pink"))
+                     ),
                      type = 'pie') %>%
-                                    config(displayModeBar = FALSE)
+    config(displayModeBar = FALSE)
   temp_fig = temp_fig %>% layout(title = "Fatality by Gender")
   return(temp_fig)
 }
@@ -410,35 +418,35 @@ by_age = function(x){
                      text = ~paste( '</br>Gender: Male',
                                     '</br>Age group: ', temp_data_male$age_group,
                                     '</br>Fatality: ', temp_data_male$covid_19_deaths)
-                     ) %>%
-                        add_trace(
-                                  y = ~temp_data_female$covid_19_deaths,
-                                  name = "Female",
-                                  color = I("pink"),
-                                  text = ~paste('</br>Gender: Female',
-                                                '</br>Age group: ', temp_data_female$age_group,
-                                                '</br>Fatality: ', temp_data_female$covid_19_deaths)
-                                              ) %>%
-                                                layout(barmode = "group",
-                                                       legend = list(x = 0, y = 1))
+  ) %>%
+    add_trace(
+      y = ~temp_data_female$covid_19_deaths,
+      name = "Female",
+      color = I("pink"),
+      text = ~paste('</br>Gender: Female',
+                    '</br>Age group: ', temp_data_female$age_group,
+                    '</br>Fatality: ', temp_data_female$covid_19_deaths)
+    ) %>%
+    layout(barmode = "group",
+           legend = list(x = 0, y = 1))
   temp_fig = temp_fig %>%
-                      layout(
-                              title = "Fatality by Age Group",
-                              xaxis=list(
-                                          title = "",
-                                          fixedrange = TRUE,
-                                          showline = FALSE,
-                                          showgrid = FALSE
-                                          ),
-                              yaxis=list(
-                                          title = "Fatality",
-                                          fixedrange=TRUE,
-                                          showticklabels = TRUE,
-                                          showline = FALSE,
-                                          showgrid = FALSE
-                                          )
-                              ) %>%
-                                config(displayModeBar = FALSE)
+    layout(
+      title = "Fatality by Age Group",
+      xaxis=list(
+        title = "",
+        fixedrange = TRUE,
+        showline = FALSE,
+        showgrid = FALSE
+      ),
+      yaxis=list(
+        title = "Fatality",
+        fixedrange=TRUE,
+        showticklabels = TRUE,
+        showline = FALSE,
+        showgrid = FALSE
+      )
+    ) %>%
+    config(displayModeBar = FALSE)
   return(temp_fig)
 }
 
@@ -454,37 +462,37 @@ compare = function(x){
   temp_data_female = temp_data_female[!((temp_data_female$covid_19_deaths == 0) | (is.na(temp_data_female$covid_19_deaths) == TRUE)), ]
   temp_fig = plot_ly()
   temp_fig = temp_fig %>% add_pie(
-                                  labels = temp_data_male$age_group,
-                                  values = temp_data_male$covid_19_deaths,
-                                  name = "Male",
-                                  domain = list(
-                                    x = c(0, 0.5),
-                                    y = c(0.25, 0.75)
-                                    ),
-                                  title = list(text = 'Male Fatality', 
-                                               font = f)
-                                  )
+    labels = temp_data_male$age_group,
+    values = temp_data_male$covid_19_deaths,
+    name = "Male",
+    domain = list(
+      x = c(0, 0.5),
+      y = c(0.25, 0.75)
+    ),
+    title = list(text = 'Male Fatality', 
+                 font = f)
+  )
   temp_fig = temp_fig %>% add_pie(
-                                  labels = temp_data_female$age_group,
-                                  values = temp_data_female$covid_19_deaths,
-                                  name = "Female",
-                                  domain = list(
-                                    x = c(0.5, 1),
-                                    y = c(0.25, 0.75)
-                                    ),
-                                  title = list(text = 'Female Fatality', 
-                                               font = f)
-                                  )
+    labels = temp_data_female$age_group,
+    values = temp_data_female$covid_19_deaths,
+    name = "Female",
+    domain = list(
+      x = c(0.5, 1),
+      y = c(0.25, 0.75)
+    ),
+    title = list(text = 'Female Fatality', 
+                 font = f)
+  )
   temp_fig = temp_fig %>% layout(
-                                  title = "Fatality Between Genders and Age Groups Comparison", 
-                                  showlegend = FALSE,
-                                  xaxis = list(showgrid = FALSE, 
-                                               zeroline = FALSE, 
-                                               showticklabels = FALSE),
-                                  yaxis = list(showgrid = FALSE, 
-                                               zeroline = FALSE, 
-                                               showticklabels = FALSE)
-                                 ) %>%
-                                    config(displayModeBar = FALSE)
+    title = "Fatality Between Genders and Age Groups Comparison", 
+    showlegend = FALSE,
+    xaxis = list(showgrid = FALSE, 
+                 zeroline = FALSE, 
+                 showticklabels = FALSE),
+    yaxis = list(showgrid = FALSE, 
+                 zeroline = FALSE, 
+                 showticklabels = FALSE)
+  ) %>%
+    config(displayModeBar = FALSE)
   return(temp_fig)
 }
