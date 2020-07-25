@@ -8,6 +8,7 @@ library('tigris')
 library('blscrapeR')
 
 county_file_url = "C:/Users/nghia/OneDrive/Documents/GitHub/covid_dashboard/covid19_county_data.csv"
+state_file_url = "C:/Users/nghia/OneDrive/Documents/GitHub/covid_dashboard/covid19_state_data.csv"
 us_file_url     = "C:/Users/nghia/OneDrive/Documents/GitHub/covid_dashboard/covid19_nation_data.csv"
 fatality_by_gender_url = "C:/Users/nghia/OneDrive/Documents/GitHub/covid_dashboard/fatality_by_gender.csv"
 
@@ -170,6 +171,20 @@ replaceNA = function(x){
 
 #this function plot heatmap for total cases
 plot_map = function(x){
+  #format data
+  fips = x$fips
+  fips = lapply(fips, function(x){
+    if(is.na(x) == TRUE) 
+      return(0) 
+    else
+      return(x)
+  })
+  fips = lapply(fips, function(x){
+    if (nchar(x) < 5)
+      return(paste0("0", x))
+    else return(x)
+  })
+  x$fips = fips
   data = x
   #get state name
   state_name = unique(data$state)
@@ -184,7 +199,8 @@ plot_map = function(x){
   temp_data_deaths = subset(data, 
                             select = c("deaths", "fips")
   )
-  
+  temp_data_cases$fips = as.character(temp_data_cases$fips)
+  temp_data_deaths$fips = as.character(temp_data_deaths$fips)
   colnames(temp_data_cases) = c("cases", "GEOID")
   colnames(temp_data_deaths) = c("deaths", "GEOID")
   
@@ -495,4 +511,138 @@ compare = function(x){
   ) %>%
     config(displayModeBar = FALSE)
   return(temp_fig)
+}
+
+plot_map_national = function(x){
+  #format data
+  fips = x$fips
+  fips = lapply(fips, function(x){
+    if(is.na(x) == TRUE) 
+      return(0) 
+    else
+      return(x)
+  })
+  fips = lapply(fips, function(x){
+    if (nchar(x) < 2)
+      return(paste0("0", x))
+    else return(x)
+  })
+  x$fips = fips
+  data = x
+  #get most recent data
+  data = data[data$date == day, ]
+  
+  temp_data_cases = subset(data, 
+                           select = c("cases", "fips")
+  )
+  temp_data_deaths = subset(data, 
+                            select = c("deaths", "fips")
+  )
+  temp_data_cases$fips = as.character(temp_data_cases$fips)
+  temp_data_deaths$fips = as.character(temp_data_deaths$fips)
+  colnames(temp_data_cases) = c("cases", "GEOID")
+  colnames(temp_data_deaths) = c("deaths", "GEOID")
+  
+  #download map shape
+  map.shape = tigris::states( 
+                               cb = TRUE,
+                               resolution='500k',
+                               year = 2019)
+  
+  #convert tabular data into geo-spatial data
+  #create temp_object
+  temp_object = list()
+  map_cases = geo_join(map.shape, 
+                       temp_data_cases, 
+                       by = "GEOID")
+  map_deaths = geo_join(map.shape, 
+                        temp_data_deaths, 
+                        by = "GEOID")
+  
+  #color palette
+  risk_bins_cases =c(
+    0, 
+    ceiling(max(temp_data_cases$cases) * 0.01), 
+    ceiling(max(temp_data_cases$cases) * 0.05), 
+    ceiling(max(temp_data_cases$cases) * 0.1), 
+    ceiling(max(temp_data_cases$cases) * 0.3), 
+    ceiling(max(temp_data_cases$cases) * 0.5), 
+    ceiling(max(temp_data_cases$cases))
+  )
+  
+  pal_cases = colorBin("YlOrRd", 
+                       domain = temp_data_cases$cases,
+                       bins = risk_bins_cases
+  )
+  pal_deaths = colorNumeric("Purples", 
+                            domain = temp_data_deaths$deaths
+  )
+  #store data in temp_object
+  temp_object[[1]] = map_cases
+  temp_object[[2]] = pal_cases
+  temp_object[[3]] = map_deaths
+  temp_object[[4]] = pal_deaths
+  #make map
+  temp_object[[5]] = leaflet() %>% 
+    addTiles() %>% 
+    #add positive cases layer
+    addPolygons(
+      data = map_cases,
+      fillColor = ~pal_cases(cases), 
+      fillOpacity = 0.8,
+      group = "Infected",
+      color = "#b2aeae",
+      weight = 1,
+      smoothFactor = 0.5,
+      popup = paste0("County: ", 
+                     map_cases$NAME,
+                     "<br>",
+                     "Number of cases: ",
+                     prettyNum(map_cases$cases, 
+                               big.mark=",", 
+                               scientific = FALSE)
+      ),
+      highlightOptions = highlightOptions(color = "white", 
+                                          weight = 2,
+                                          bringToFront = TRUE)
+    ) %>%
+    #add deaths layer
+    addPolygons(
+      data = map_deaths,
+      fillColor = ~pal_deaths(deaths), 
+      fillOpacity = 1, 
+      group = "Fatality",
+      color = "#b2aeae",
+      weight = 1,
+      smoothFactor = 0.5,
+      popup = paste0("State: ", 
+                     map_deaths$NAME,
+                     "<br>",
+                     "Number of fatality: ",
+                     prettyNum(map_deaths$deaths, 
+                               big.mark=",", 
+                               scientific = FALSE)
+      ),
+      highlightOptions = highlightOptions(color = "white", 
+                                          weight = 2,
+                                          bringToFront = TRUE)
+    ) %>%
+    #add legends
+    #add legends
+    addLegend(
+      title = "Infected",
+      position="bottomright",
+      pal = pal_cases, 
+      values = map_cases$cases, 
+      group = "Infected",
+      opacity = 1) %>%
+    #add layer control
+    addLayersControl(
+      baseGroups = c ("Infected", "Fatality"),
+      #overlayGroups = c ("Infected", "Fatality"),
+      position = "topleft",
+      options = layersControlOptions(collapsed = FALSE)
+    ) %>%
+    setView(lng = -97.922211, lat = 39.381266, zoom = 3)
+  return(temp_object)
 }

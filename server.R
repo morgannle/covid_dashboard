@@ -9,41 +9,22 @@
     selected_state = reactive(input$select)
     
     covid19_county_data = read.csv(county_file_url,
-                                   stringsAsFactors=FALSE, 
-                                   header=TRUE) 
-    fatality_by_gender = read.csv(fatality_by_gender_url,
-                                  stringsAsFactors=FALSE, 
-                                  header=TRUE)
+                                   stringsAsFactors = FALSE, 
+                                   header = TRUE) 
     covid19_nation_data = read.csv(us_file_url, 
-                                   stringsAsFactors=FALSE, 
-                                   header=TRUE)
-    
-    #format data
-    fips = covid19_county_data$fips
-    fips = lapply(fips, function(x){
-      if(is.na(x) == TRUE) 
-        return(0) 
-      else
-        return(x)
-    })
-    fips = lapply(fips, function(x){
-      if (nchar(x) < 5)
-        return(paste0("0", x))
-      else return(x)
-      })
-    covid19_county_data$fips = fips
-    
+                                   stringsAsFactors = FALSE, 
+                                   header = TRUE)
+    covid19_state_data = read.csv(state_file_url,
+                                  stringsAsFactors = FALSE,
+                                  header = TRUE)
+    fatality_by_gender = read.csv(fatality_by_gender_url,
+                                  stringsAsFactors = FALSE, 
+                                  header = TRUE)
+   
     covid19_county_data$date = as.Date(covid19_county_data$date)
+    covid19_state_data$date = as.Date(covid19_state_data$date)
     covid19_nation_data$date = as.Date(covid19_nation_data$date)
     
-    #this variable contains time series data of all state
-    covid19_state_data = covid19_county_data %>%
-      group_by(state, date) %>%
-      summarise(cases = sum(cases),
-                deaths = sum(deaths)
-                )
-    
-    state_name = unique(covid19_state_data$state)
     #each sub-object of these objects contains time series data of each states
     covid19_timeseries_data = list()
   
@@ -51,14 +32,11 @@
       covid19_timeseries_data[[i]] = covid19_state_data[covid19_state_data$state == state.name[i], ]
       }
     
+    covid19_national_timeseries = diff(covid19_nation_data)
+    covid19_national_timeseries = replaceNA(covid19_national_timeseries)
+    
     covid19_timeseries_data = lapply(covid19_timeseries_data, diff) #calculate new cases and deaths
     covid19_timeseries_data = lapply(covid19_timeseries_data, replaceNA) #replace NA with 0
-    #include nation data in the list
-    covid19_timeseries_data[[length(covid19_timeseries_data) + 1]] = replaceNA(
-      diff(
-        covid19_nation_data
-        )
-      )
     #collapse the list of list
     covid19_timeseries_data = do.call(rbind, covid19_timeseries_data)
     
@@ -81,6 +59,13 @@
     temp_state_map = reactive(
       temp_state_object()[[5]]
       )
+    
+    temp_national_object = reactive(
+      plot_map_national(covid19_state_data)
+      )
+    temp_national_map = reactive(
+      temp_national_object()[[5]]
+    )
     
     #drawing timeseries plot of case and death in every states
     selected_state_timeseries_data = reactive(
@@ -107,6 +92,13 @@
       compare(selected_state_fatality_by_gender_data())
     )
     
+    output$national_cases_timeseries = renderPlotly(
+      plot_case(covid19_national_timeseries)
+      )
+    output$national_deaths_timeseries = renderPlotly(
+      plot_death(covid19_national_timeseries)
+      )
+    
     output$cases_timeseries = renderPlotly(temp_timeplot_cases())
     output$deaths_timeseries = renderPlotly(temp_timeplot_deaths())
     
@@ -128,6 +120,25 @@
       }
     )
     
+    output$national_heatmap = renderLeaflet(temp_national_map())
+    observeEvent(input$national_heatmap_groups,{
+      heatmap <- leafletProxy("national_heatmap")
+      heatmap %>% clearControls()
+      if (input$national_heatmap_groups == 'Infected') {
+        heatmap %>% addLegend(position="bottomright", 
+                              pal = temp_national_object()[[2]], 
+                              values = temp_national_object()[[1]]$cases, 
+                              title = "Infected")
+      }
+      else if (input$national_heatmap_groups == 'Fatality') {
+        heatmap %>% addLegend(position="bottomright", 
+                              pal = temp_national_object()[[4]], 
+                              values = temp_national_object()[[3]]$deaths, 
+                              title="Fatality")}
+      }
+    )
+    
+    
     output$state_cases_barplot = renderPlotly(
                                               barplot_case(selected_county_data())
                                               )
@@ -137,26 +148,60 @@
     output$valuebox_total_case = renderValueBox(
       valueBox(total_case_valuebox(selected_state_data()), 
                width = 2, 
-               subtitle = "Number of Cases",
+               subtitle = paste0(selected_state(), " Total Cases"),
+               color = I("blue")
                )
       )
     output$valuebox_new_case = renderValueBox(
       valueBox(new_case_valuebox(selected_state_data()), 
                width = 2, 
-               subtitle = "New Cases",
+               subtitle = paste0(selected_state(), " New Cases"),
+               color = I("blue")
       )
     )
     output$valuebox_total_death = renderValueBox(
       valueBox(total_death_valuebox(selected_state_data()), 
                width = 2, 
                icon = icon("<abacus"),
-               subtitle = "Total Fatality",
+               subtitle = paste0(selected_state(), " Total Fatality"),
+               color = I("blue")
       )
     )
     output$valuebox_new_death = renderValueBox(
       valueBox(new_death_valuebox(selected_state_data()), 
                width = 2, 
-               subtitle = "New Fatality",
+               subtitle = paste0(selected_state(), " New Cases"),
+               color = I("blue")
+      )
+    )
+    #
+    output$valuebox_national_total_case = renderValueBox(
+      valueBox(total_case_valuebox(covid19_nation_data), 
+               width = 2, 
+               subtitle = "National Total Cases",
+               color = I("navy")
+      )
+    )
+    output$valuebox_national_new_case = renderValueBox(
+      valueBox(new_case_valuebox(covid19_nation_data), 
+               width = 2, 
+               subtitle = "National New Cases",
+               color = I("navy")
+      )
+    )
+    output$valuebox_national_total_death = renderValueBox(
+      valueBox(total_death_valuebox(covid19_nation_data), 
+               width = 2, 
+               icon = icon("<abacus"),
+               subtitle = "National Total Fatality",
+               color = I("navy")
+      )
+    )
+    output$valuebox_national_new_death = renderValueBox(
+      valueBox(new_death_valuebox(covid19_nation_data), 
+               width = 2, 
+               subtitle = "National New Fatality",
+               color = I("navy")
       )
     )
     
@@ -165,8 +210,5 @@
     )
     output$bar_plot = renderPlotly(
       bar_plot_fatality_by_gender()
-    )
-    output$compare =renderPlotly(
-      comparison_fatality_by_gender()
     )
   }

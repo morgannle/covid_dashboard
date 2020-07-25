@@ -5,16 +5,66 @@ library(shinydashboard)
 library(leaflet)
 library(DT)
 body_colwise <- dashboardBody(
+  fluidRow(
+        box(
+          width = 3,
+          height = 120,
+          selectInput("select", 
+                      label = h3("Select a state: "), 
+                      choices = state.name, 
+                      selected = "Missouri")
+          ),
+        box(
+          width = 9,
+          height = 120,
+          "- This dashboard would not be possible without 
+          data from", strong("The New York Times"), 
+          "based on reports from state and local health agencies, 
+          and", strong("Centers for Disease Control and Prevention (CDC)"),".",
+          br(),
+          "-",
+          strong("The New York Times"),
+          "also has their own reporting platform, 
+          you can access them at", 
+          tags$a("this link.", href="https://www.nytimes.com/interactive/2020/us/coronavirus-us-cases.html"),
+          br(),
+          "- Data powering this dashboard can be found",
+          tags$a("here", href = "https://github.com/nytimes/covid-19-data"),
+          "and",
+          tags$a("here.", href = "https://data.cdc.gov/NCHS/Provisional-COVID-19-Death-Counts-by-Sex-Age-and-S/9bhg-hcku"),
+          br(),
+          "- This dashboard reports the situation of COVID 19 in", strong("United States"), "as of",
+          strong(paste0(Sys.Date() - 1)),"."
+          )
+        ),
   
   fluidRow(
-    column(
-        width = 3,
-        selectInput("select", 
-                    label = h3("State: "), 
-                    choices = state.name, 
-                    selected = "Alabama")
-        )
+    valueBoxOutput("valuebox_national_total_case", width = 3),
+    valueBoxOutput("valuebox_national_new_case", width = 3),
+    valueBoxOutput("valuebox_national_total_death", width = 3),
+    valueBoxOutput("valuebox_national_new_death", width = 3)
+  ),
+  
+  fluidRow(
+    tabBox(
+      width = 6,
+      height = '500',
+      tabPanel(
+        "National New Cases",
+        shinycssloaders::withSpinner(plotlyOutput("national_cases_timeseries"))
+      ),
+      tabPanel(
+        "National New Fatality",
+        shinycssloaders::withSpinner(plotlyOutput("national_deaths_timeseries"))
+      )
     ),
+    box(
+      width = 6,
+      title = "Cases and Deaths Distribution",
+      height = '500',
+      shinycssloaders::withSpinner(leafletOutput("national_heatmap"))
+    )
+  ),
   
   fluidRow(
     valueBoxOutput("valuebox_total_case", width = 3),
@@ -28,7 +78,7 @@ body_colwise <- dashboardBody(
       title = "Heatmap",
       width = 8,
       height = '500',
-      leafletOutput("heatmap")
+      shinycssloaders::withSpinner(leafletOutput("heatmap"))
       ),
     tabBox(
       title = "State Data",
@@ -37,12 +87,12 @@ body_colwise <- dashboardBody(
       tabPanel(
         "Cases",
         style = 'overflow-y: scroll',
-        plotlyOutput("state_cases_barplot")
+        shinycssloaders::withSpinner(plotlyOutput("state_cases_barplot"))
       ),
       tabPanel(
         "Fatality",
         style = 'overflow-y: scroll',
-        plotlyOutput("state_deaths_barplot")
+        shinycssloaders::withSpinner(plotlyOutput("state_deaths_barplot"))
       )
     )
   ),
@@ -52,12 +102,12 @@ body_colwise <- dashboardBody(
       title = "Time-series Data",
       width = 6,
       tabPanel(
-        "New Cases",
-        plotlyOutput("cases_timeseries")
+        "State New Cases",
+        shinycssloaders::withSpinner(plotlyOutput("cases_timeseries"))
       ),
       tabPanel(
-        "New Fatality",
-        plotlyOutput("deaths_timeseries")
+        "State New Fatality",
+        shinycssloaders::withSpinner(plotlyOutput("deaths_timeseries"))
       )
     ),
     tabBox(
@@ -65,24 +115,18 @@ body_colwise <- dashboardBody(
       title = "Fatality Demographic",
       tabPanel(
         "By Gender",
-        plotlyOutput("pie_chart")
+        shinycssloaders::withSpinner(plotlyOutput("pie_chart"))
         ),
       tabPanel(
         "By Age Group",
-        plotlyOutput("bar_plot")
-        ),
-      tabPanel(
-        "Comparison",
-        plotlyOutput("compare")
+        shinycssloaders::withSpinner(plotlyOutput("bar_plot"))
         )
       )
-    ),
-  fluidRow(tableOutput("obs"))
+    )
   )
 
 ui <- dashboardPage(
-  
-  dashboardHeader(title = "Summary of COVID 19 in United States"),
+  dashboardHeader(disable = TRUE),
   dashboardSidebar(disable = TRUE),
   body_colwise
 )
