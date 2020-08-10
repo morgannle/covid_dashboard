@@ -20,6 +20,10 @@
     fatality_by_gender = read.csv(fatality_by_gender_url,
                                   stringsAsFactors = FALSE, 
                                   header = TRUE)
+    growth_percent_by_county = read.csv(growth_percent_by_county_url,
+                                        stringsAsFactors = FALSE, 
+                                        row.names = NULL,
+                                        header = TRUE)
    
     covid19_county_data$date = as.Date(covid19_county_data$date)
     covid19_state_data$date = as.Date(covid19_state_data$date)
@@ -59,13 +63,6 @@
     temp_state_map = reactive(
       temp_state_object()[[5]]
       )
-    
-    temp_national_object = reactive(
-      plot_map_national(covid19_state_data)
-      )
-    temp_national_map = reactive(
-      temp_national_object()[[5]]
-    )
     
     #drawing timeseries plot of case and death in every states
     selected_state_timeseries_data = reactive(
@@ -120,24 +117,7 @@
       }
     )
     
-    output$national_heatmap = renderLeaflet(temp_national_map())
-    observeEvent(input$national_heatmap_groups,{
-      heatmap <- leafletProxy("national_heatmap")
-      heatmap %>% clearControls()
-      if (input$national_heatmap_groups == 'Infected') {
-        heatmap %>% addLegend(position="bottomright", 
-                              pal = temp_national_object()[[2]], 
-                              values = temp_national_object()[[1]]$cases, 
-                              title = "Infected")
-      }
-      else if (input$national_heatmap_groups == 'Fatality') {
-        heatmap %>% addLegend(position="bottomright", 
-                              pal = temp_national_object()[[4]], 
-                              values = temp_national_object()[[3]]$deaths, 
-                              title="Fatality")}
-      }
-    )
-    
+    output$national_heatmap = renderLeaflet(plot_growth_percent(growth_percent_by_county))
     
     output$state_cases_barplot = renderPlotly(
                                               barplot_case(selected_county_data())

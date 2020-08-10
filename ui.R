@@ -46,21 +46,9 @@ body_colwise <- dashboardBody(
   ),
   
   fluidRow(
-    tabBox(
-      width = 6,
-      height = '500',
-      tabPanel(
-        "National New Cases",
-        shinycssloaders::withSpinner(plotlyOutput("national_cases_timeseries"))
-      ),
-      tabPanel(
-        "National New Fatality",
-        shinycssloaders::withSpinner(plotlyOutput("national_deaths_timeseries"))
-      )
-    ),
     box(
-      width = 6,
-      title = "Cases and Deaths Distribution",
+      width = 12,
+      title = "7-day Average Cases Growth (percent) ",
       height = '500',
       shinycssloaders::withSpinner(leafletOutput("national_heatmap"))
     )
@@ -99,7 +87,6 @@ body_colwise <- dashboardBody(
   
   fluidRow(
     tabBox(
-      title = "Time-series Data",
       width = 6,
       tabPanel(
         "State New Cases",
@@ -108,6 +95,14 @@ body_colwise <- dashboardBody(
       tabPanel(
         "State New Fatality",
         shinycssloaders::withSpinner(plotlyOutput("deaths_timeseries"))
+      ),
+      tabPanel(
+        "National New Cases",
+        shinycssloaders::withSpinner(plotlyOutput("national_cases_timeseries"))
+      ),
+      tabPanel(
+        "National New Fatality",
+        shinycssloaders::withSpinner(plotlyOutput("national_deaths_timeseries"))
       )
     ),
     tabBox(

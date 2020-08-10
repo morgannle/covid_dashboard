@@ -11,7 +11,7 @@ county_file_url = "C:/Users/nghia/OneDrive/Documents/GitHub/covid_dashboard/covi
 state_file_url = "C:/Users/nghia/OneDrive/Documents/GitHub/covid_dashboard/covid19_state_data.csv"
 us_file_url     = "C:/Users/nghia/OneDrive/Documents/GitHub/covid_dashboard/covid19_nation_data.csv"
 fatality_by_gender_url = "C:/Users/nghia/OneDrive/Documents/GitHub/covid_dashboard/fatality_by_gender.csv"
-
+growth_percent_by_county_url = "C:/Users/nghia/OneDrive/Documents/GitHub/covid_dashboard/growth_percent_by_county.csv"
 state_bounding_box = read.csv("state_bounding_box.csv")
 day = Sys.Date() - 2
 
@@ -169,6 +169,80 @@ replaceNA = function(x){
   return(temp)
 }
 
+#this function plot new case growth
+plot_growth_percent = function(x){
+  #format data
+  fips = x$fips
+  fips = lapply(fips, function(x){
+    if(is.na(x) == TRUE) 
+      return(0) 
+    else
+      return(x)
+  })
+  fips = lapply(fips, function(x){
+    if (nchar(x) < 5)
+      return(paste0("0", x))
+    else return(x)
+  })
+  x$fips = fips
+  data = x
+  temp_data_cases = subset(data, 
+                           select = c("X7_day_average_case_growth", "fips")
+  )
+  temp_data_cases$fips = as.character(temp_data_cases$fips)
+  colnames(temp_data_cases) = c("cases", "GEOID")
+  map.shape = tigris::counties(
+                               cb = TRUE,
+                               resolution='500k',
+                               year = 2019)
+  map_cases = geo_join(map.shape, 
+                       temp_data_cases, 
+                       by = "GEOID")
+  risk_bins_cases = c(-100, -10, -5, -1, 1, 5, 10, 100)
+  
+  pal = colorBin("YlOrRd", 
+                  domain = temp_data_cases$cases,
+                  bins = risk_bins_cases)
+  temp_fig = leaflet() %>% 
+    addTiles() %>% 
+    #add positive cases layer
+    addPolygons(
+      data = map_cases,
+      fillColor = ~pal(cases), 
+      fillOpacity = 0.9,
+      color = "#b2aeae",
+      weight = 1,
+      smoothFactor = 0.5,
+      popup = paste0("County: ", 
+                     map_cases$NAME,
+                     "<br>",
+                     "Cases growth: ",
+                     paste0(round(map_cases$cases,3), "%")),
+      highlightOptions = highlightOptions(color = "white", 
+                                          weight = 2,
+                                          bringToFront = TRUE)) %>%
+    addLegend(
+      title = "",
+      position="bottomright",
+      colors = c("#FFFFB2",
+                 "#FED976",
+                 "#FEB24C",
+                 "#FD8D3C",
+                 "#FC4E2A",
+                 "#E31A1C",
+                 "#B10026"), 
+      labels = c("Less than -10%",
+               "-10% to -5%",
+                "-5% to -1% Decreasing",
+               "-1% to 1% Stable",
+                "1% to 5% Growing",
+                "5% to 10%",
+                "Greater than 10%"), 
+      opacity = 0.7)  %>%
+    setView(lng = -97.922211, lat = 39.381266, zoom = 4)
+  return(temp_fig)
+}
+
 #this function plot heatmap for total cases
 plot_map = function(x){
   #format data
@@ -223,7 +297,6 @@ plot_map = function(x){
                         by = "GEOID")
   
   #color palette
-  roundUp = function(x) 10^ceiling(log10(x))
   risk_bins_cases =c(
     0, 
     ceiling(max(temp_data_cases$cases) * 0.01), 
@@ -269,7 +342,7 @@ plot_map = function(x){
       highlightOptions = highlightOptions(color = "white", 
                                           weight = 2,
                                           bringToFront = TRUE)
-    ) %>%
+      ) %>%
     #add deaths layer
     addPolygons(
       data = map_deaths,
