@@ -11,7 +11,7 @@ county_file_url = "C:/Users/nghia/OneDrive/Documents/GitHub/covid_dashboard/covi
 state_file_url = "C:/Users/nghia/OneDrive/Documents/GitHub/covid_dashboard/covid19_state_data.csv"
 us_file_url     = "C:/Users/nghia/OneDrive/Documents/GitHub/covid_dashboard/covid19_nation_data.csv"
 fatality_by_gender_url = "C:/Users/nghia/OneDrive/Documents/GitHub/covid_dashboard/fatality_by_gender.csv"
-growth_percent_by_county_url = "C:/Users/nghia/OneDrive/Documents/GitHub/covid_dashboard/growth_percent_by_county.csv"
+growth_by_county_url = "C:/Users/nghia/OneDrive/Documents/GitHub/covid_dashboard/growth_by_county.csv"
 state_bounding_box = read.csv("state_bounding_box.csv")
 day = Sys.Date() - 2
 

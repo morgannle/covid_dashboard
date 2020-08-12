@@ -7,15 +7,7 @@ library(DT)
 body_colwise <- dashboardBody(
   fluidRow(
         box(
-          width = 3,
-          height = 120,
-          selectInput("select", 
-                      label = h3("Select a state: "), 
-                      choices = state.name, 
-                      selected = "Missouri")
-          ),
-        box(
-          width = 9,
+          width = 12,
           height = 120,
           "- This dashboard would not be possible without 
           data from", strong("The New York Times"), 
@@ -55,47 +47,8 @@ body_colwise <- dashboardBody(
   ),
   
   fluidRow(
-    valueBoxOutput("valuebox_total_case", width = 3),
-    valueBoxOutput("valuebox_new_case", width = 3),
-    valueBoxOutput("valuebox_total_death", width = 3),
-    valueBoxOutput("valuebox_new_death", width = 3)
-  ),
-  
-  fluidRow(
-      box(
-      title = "Heatmap",
-      width = 8,
-      height = '500',
-      shinycssloaders::withSpinner(leafletOutput("heatmap"))
-      ),
-    tabBox(
-      title = "State Data",
-      width = 4,
-      height = '500',
-      tabPanel(
-        "Cases",
-        style = 'overflow-y: scroll',
-        shinycssloaders::withSpinner(plotlyOutput("state_cases_barplot"))
-      ),
-      tabPanel(
-        "Fatality",
-        style = 'overflow-y: scroll',
-        shinycssloaders::withSpinner(plotlyOutput("state_deaths_barplot"))
-      )
-    )
-  ),
-  
-  fluidRow(
     tabBox(
       width = 6,
-      tabPanel(
-        "State New Cases",
-        shinycssloaders::withSpinner(plotlyOutput("cases_timeseries"))
-      ),
-      tabPanel(
-        "State New Fatality",
-        shinycssloaders::withSpinner(plotlyOutput("deaths_timeseries"))
-      ),
       tabPanel(
         "National New Cases",
         shinycssloaders::withSpinner(plotlyOutput("national_cases_timeseries"))
