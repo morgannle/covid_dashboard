@@ -1,3 +1,23 @@
+<<<<<<< HEAD
+=======
+library('plotly')
+library('readr')
+library('dplyr')
+library('zoo')
+library('shinydashboard')
+library('leaflet')
+library('tigris')
+library('blscrapeR')
+
+county_file_url = "C:/Users/nghia/OneDrive/Documents/GitHub/covid_dashboard/covid19_county_data.csv"
+state_file_url = "C:/Users/nghia/OneDrive/Documents/GitHub/covid_dashboard/covid19_state_data.csv"
+us_file_url     = "C:/Users/nghia/OneDrive/Documents/GitHub/covid_dashboard/covid19_nation_data.csv"
+fatality_by_gender_url = "C:/Users/nghia/OneDrive/Documents/GitHub/covid_dashboard/fatality_by_gender.csv"
+growth_percent_by_county_url = "C:/Users/nghia/OneDrive/Documents/GitHub/covid_dashboard/growth_percent_by_county.csv"
+state_bounding_box = read.csv("state_bounding_box.csv")
+day = Sys.Date() - 2
+
+>>>>>>> parent of fec88ec... 8/11/2020
 f = list(
   family = "Courier New, monospace",
   size = 18,
