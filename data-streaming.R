@@ -1,6 +1,17 @@
-library(dplyr)
-library(tidyr)
-library(tidyverse)
+library('tidyr')
+library('tidyverse')
+library('plotly')
+library('readr')
+library('dplyr')
+library('zoo')
+library('leaflet')
+library('tigris')
+library('blscrapeR')
+library('flexdashboard')
+#wd = "/srv/shiny-server/myapp/"
+wd = "C:/Users/nghia/OneDrive/Documents/GitHub/covid_dashboard"
+setwd(wd)
+source("functions.R")
 
 county_file_url = "https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv"
 state_file_url = "https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv"
@@ -28,8 +39,13 @@ covid19_county_data$date = as.Date(covid19_county_data$date)
 covid19_nation_data$date = as.Date(covid19_nation_data$date)
 covid19_county_data$fips = as.character(covid19_county_data$fips)
 
+#Time series for national data
+covid19_national_timeseries = diff(covid19_nation_data)
+covid19_national_timeseries = replaceNA(covid19_national_timeseries)
+#fatality by gender for national data
+fatality_by_gender_data = fatality_by_gender[fatality_by_gender$state == "United States", ] 
+#national new cases
 temp_data = covid19_county_data
-
 temp_data[ ,c("X", "deaths")] = NULL
 temp_data = temp_data[complete.cases(temp_data), ]
 temp_data = temp_data %>% pivot_wider(names_from = date, values_from = cases)
@@ -47,7 +63,6 @@ new_cases = data.frame(temp_new_cases[[index-6]],
                             temp_new_cases[[index]])
 total_cases = temp_data[ ,ncol(temp_data)]
 new_cases_7days_average = rowMeans(new_cases)
-
 new_cases_by_county = data.frame(temp_data$state,
                                  temp_data$county,
                                  temp_data$fips,
@@ -58,14 +73,10 @@ colnames(new_cases_by_county) = c("State", "County", "fips", "new_cases_7day_ave
 new_cases_per_100k = merge(new_cases_by_county, population_by_county, by = "fips")
 new_cases_per_100k$new_cases_7day_average[new_cases_per_100k$new_cases_7day_average < 0] = 0
 new_cases_per_100k = new_cases_per_100k %>% mutate(new_cases_per_100k = new_cases_7day_average*100000/population,
-                                                   total_cases_per_100k = total_cases*100000/population)
-write.csv(covid19_nation_data,
-          file = "C:/Users/nghia/OneDrive/Documents/GitHub/covid_dashboard/covid19_nation_data.csv")
-write.csv(covid19_state_data,
-          file = "C:/Users/nghia/OneDrive/Documents/GitHub/covid_dashboard/covid19_state_data.csv")
-write.csv(covid19_county_data,
-          file = "C:/Users/nghia/OneDrive/Documents/GitHub/covid_dashboard/covid19_county_data.csv")
-write.csv(fatality_by_gender,
-          file = "C:/Users/nghia/OneDrive/Documents/GitHub/covid_dashboard/fatality_by_gender.csv")
-write.csv(new_cases_per_100k,
-          file = "C:/Users/nghia/OneDrive/Documents/GitHub/covid_dashboard/new_cases_by_county.csv")
+                                                    total_cases_per_100k = total_cases*100000/population)
+#plotting
+pie_chart_fatality_by_gender = by_gender(fatality_by_gender_data)
+bar_plot_fatality_by_gender = by_age(fatality_by_gender_data)
+new_cases_timeseries = plot_case(covid19_national_timeseries)
+new_deaths_time_series = plot_death(covid19_national_timeseries)
+heatmap_new_cases_by_county = plot_growth(new_cases_per_100k)
